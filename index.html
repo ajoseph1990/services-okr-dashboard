@@ -696,7 +696,16 @@ async function loadSharePointData(silent = false) {
         if (r.YTD != null) obj.YTD = parseNum(r.YTD);
         return obj;
       });
-    const slKey = r => String(r["MS/Consulting/Strategy"] || r["Service Line"] || r.ServiceLine || "").trim();
+    const slKey = r => {
+      // Try exact names first
+      for (const k of ["MS/Consulting/Strategy", "Service Line", "ServiceLine"]) {
+        if (r[k] != null && String(r[k]).trim()) return String(r[k]).trim();
+      }
+      // Case/special-char insensitive fallback
+      const norm = s => s.toLowerCase().replace(/[^a-z]/g, "");
+      const key = Object.keys(r).find(k => ["msconsultingstrategy","serviceline"].includes(norm(k)));
+      return key ? String(r[key]).trim() : "";
+    };
     EMBEDDED_DATA.deals = dealsRows.map(r => ({
       Month: String(r.Month || ""), Client: String(r.Client || ""),
       Type: String(r.Type || ""), Scope: String(r.Scope || ""),
@@ -1077,8 +1086,9 @@ function fmtM(v) { const n = +v.toFixed(2); return "$" + (n % 1 === 0 ? n.toFixe
 function fmtK(v) { return "$" + (v * 1000).toFixed(0) + "K"; }
 
 function filterBySL(arr, sl) {
-  const hasAny = arr.some(x => x.ServiceLine);
-  if (!hasAny) return arr;
+  // Check if ANY row has the ServiceLine key set (even empty string counts as "column exists")
+  const hasColumn = arr.some(x => Object.prototype.hasOwnProperty.call(x, "ServiceLine"));
+  if (!hasColumn) return arr; // column doesn't exist at all — show everything (no Excel loaded)
   const s = sl.toLowerCase();
   return arr.filter(x => x.ServiceLine && x.ServiceLine.toLowerCase().includes(s));
 }
@@ -1186,13 +1196,16 @@ function heroCard(opts) {
   // Only show forecast/run-rate section in Forecast view
   const showForecastSection = viewMode === "FORECAST";
   
+  // In FORECAST mode show the forecast figure prominently, not the YTD actual
+  const displayValue = (viewMode === "FORECAST" && isRevOrMargin) ? forecastStr : value;
+
   return `<div class="hero-card">
     <div class="hero-top">
       <div class="hero-header">
         <div class="hero-label">${label}</div>
         ${sparkSVG(color)}
       </div>
-      <div class="hero-value">${value}</div>
+      <div class="hero-value">${displayValue}</div>
       <div class="hero-target-line">${targetLineStr}</div>
       <div class="hero-status">
         <span class="status-badge ${color}">${status}</span>
@@ -1467,11 +1480,11 @@ function render() {
   }
   
   if (activeTab === "consulting") {
-    const conCols = viewMode === "FORECAST" ? 3 : 4;
+    const conCols = viewMode === "FORECAST" ? 2 : 4;
     html += `<div class="hero-grid" style="grid-template-columns:repeat(${conCols},1fr)">
       ${heroCard({ label: "CONSULTING REVENUE", value: fmtM(d.rev.consulting), actual: d.rev.consulting, mtdTgt: getMTD("Rev Consulting ($M)", mName), ytdTgt: getMTDYTD("Rev Consulting ($M)"), annTgt: ANN_TGT.revConsulting, forecast: d.rev.forecastConsulting, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
       ${heroCard({ label: "CONSULTING MARGIN", value: d.mg.conM.toFixed(0) + "%", actual: d.mg.conM, mtdTgt: getMTD("Consulting Margin %", mName) || 37, ytdTgt: getMTDYTD("Consulting Margin %") || 37, annTgt: ANN_TGT.conM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "CONSULTING UTILIZATION", value: d.mg.conU.toFixed(0) + "%", actual: d.mg.conU, mtdTgt: getMTD("Consulting Util %", mName) || ANN_TGT.conU, ytdTgt: getMTDYTD("Consulting Util %") || ANN_TGT.conU, annTgt: ANN_TGT.conU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true })}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "CONSULTING UTILIZATION", value: d.mg.conU.toFixed(0) + "%", actual: d.mg.conU, mtdTgt: getMTD("Consulting Util %", mName) || ANN_TGT.conU, ytdTgt: getMTDYTD("Consulting Util %") || ANN_TGT.conU, annTgt: ANN_TGT.conU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
       ${viewMode !== "FORECAST" ? heroCard({ label: "ACV", value: fmtM(d.acv.newLogo), actual: d.acv.newLogo, mtdTgt: getMTD("ACV New Logos ($M)", mName), ytdTgt: getMTDYTD("ACV New Logos ($M)"), annTgt: ANN_TGT.acvNewLogo, unit: "$M", mIdx: currentMonth }) : ''}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
@@ -1479,11 +1492,11 @@ function render() {
   }
 
   if (activeTab === "ms") {
-    const msCols = viewMode === "FORECAST" ? 3 : 5;
+    const msCols = viewMode === "FORECAST" ? 2 : 5;
     html += `<div class="hero-grid" style="grid-template-columns:repeat(${msCols},1fr)">
       ${heroCard({ label: "MS REVENUE", value: fmtM(d.rev.ms), actual: d.rev.ms, mtdTgt: getMTD("Rev MS ($M)", mName), ytdTgt: getMTDYTD("Rev MS ($M)"), annTgt: ANN_TGT.revMS, forecast: d.rev.forecastMS, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
       ${heroCard({ label: "MS MARGIN", value: d.mg.msM.toFixed(0) + "%", actual: d.mg.msM, mtdTgt: getMTD("MS Margin %", mName) || 23, ytdTgt: getMTDYTD("MS Margin %") || 23, annTgt: ANN_TGT.msM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: getMTD("MS Renewal %", mName) || 60, ytdTgt: getMTDYTD("MS Renewal %") || 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true })}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: getMTD("MS Renewal %", mName) || 60, ytdTgt: getMTDYTD("MS Renewal %") || 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
       ${viewMode !== "FORECAST" ? heroCard({ label: "MS UTILIZATION", value: d.mg.msU.toFixed(0) + "%", actual: d.mg.msU, mtdTgt: getMTD("MS Util %", mName) || ANN_TGT.msU, ytdTgt: getMTDYTD("MS Util %") || ANN_TGT.msU, annTgt: ANN_TGT.msU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
       ${viewMode !== "FORECAST" ? heroCard({ label: "MS ACV", value: fmtM(d.acv.total), actual: d.acv.total, mtdTgt: getMTD("ACV Total ($M)", mName), ytdTgt: getMTDYTD("ACV Total ($M)"), annTgt: ANN_TGT.acvTotal, unit: "$M", mIdx: currentMonth }) : ''}
     </div>`;
