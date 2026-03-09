@@ -696,34 +696,28 @@ async function loadSharePointData(silent = false) {
         if (r.YTD != null) obj.YTD = parseNum(r.YTD);
         return obj;
       });
-    const slKey = r => {
-      // Try exact names first
-      for (const k of ["MS/Consulting/Strategy", "Service Line", "ServiceLine"]) {
-        if (r[k] != null && String(r[k]).trim()) return String(r[k]).trim();
-      }
-      // Case/special-char insensitive fallback
-      const norm = s => s.toLowerCase().replace(/[^a-z]/g, "");
-      const key = Object.keys(r).find(k => ["msconsultingstrategy","serviceline"].includes(norm(k)));
-      return key ? String(r[key]).trim() : "";
-    };
+    const dealsSLCol    = detectSLCol(dealsRows);
+    const pipelineSLCol = detectSLCol(pipelineRows);
+    const bonusSLCol    = detectSLCol(bonusRows);
+
     EMBEDDED_DATA.deals = dealsRows.map(r => ({
       Month: String(r.Month || ""), Client: String(r.Client || ""),
       Type: String(r.Type || ""), Scope: String(r.Scope || ""),
       "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
-      ServiceLine: slKey(r)
+      ServiceLine: getSL(r, dealsSLCol)
     }));
     EMBEDDED_DATA.pipeline = pipelineRows.map(r => ({
       Client: String(r.Client || ""), Scope: String(r.Scope || ""),
       "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
       "Weighted ACV ($M)": parseNum(r["Weighted ACV ($M)"]) || 0,
       "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low"),
-      ServiceLine: slKey(r)
+      ServiceLine: getSL(r, pipelineSLCol)
     }));
     EMBEDDED_DATA.bonus = bonusRows.map(r => ({
       Client: String(r.Client || ""),
       "Estimated Bonus ($M)": parseNum(r["Estimated Bonus ($M)"]) || 0,
       "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low"),
-      ServiceLine: slKey(r)
+      ServiceLine: getSL(r, bonusSLCol)
     }));
     EMBEDDED_DATA.forecasts = forecasts;
 
@@ -839,6 +833,36 @@ function parseLocalExcel(file) {
   reader.readAsArrayBuffer(file);
 }
 
+// Detect which column holds the service-line value for a set of rows.
+// Strategy: 1) name-based (flexible match), 2) value-based scan.
+function detectSLCol(rows) {
+  if (!rows || !rows.length) return null;
+  const norm = s => s.toLowerCase().replace(/[^a-z]/g, "");
+  const nameTargets = ["msconsultingstrategy", "serviceline", "service", "line", "division", "practice"];
+  // 1. Header-name match on first row
+  for (const k of Object.keys(rows[0])) {
+    const n = norm(k);
+    if (nameTargets.some(t => n === t || n.includes("consulting") || n.includes("service"))) {
+      return k;
+    }
+  }
+  // 2. Value-based scan: find the column whose values are service-line labels
+  const slVals = ["ms", "consulting", "strategy", "managed services", "managed service"];
+  for (const k of Object.keys(rows[0])) {
+    const hits = rows.filter(r => {
+      const v = String(r[k] || "").toLowerCase().trim();
+      return slVals.includes(v) || v.startsWith("managed") || v === "consulting" || v === "strategy";
+    });
+    if (hits.length > 0) return k;
+  }
+  return null;
+}
+
+function getSL(r, col) {
+  if (!col) return "";
+  return String(r[col] || "").trim();
+}
+
 function applyParsedData(metricsRows, dealsRows, pipelineRows, bonusRows) {
   const parseNum = v => (v === null || v === "" || v === undefined) ? undefined : parseFloat(v) || 0;
 
@@ -863,12 +887,15 @@ function applyParsedData(metricsRows, dealsRows, pipelineRows, bonusRows) {
       return obj;
     });
 
-  const slKey = r => String(r["MS/Consulting/Strategy"] || r["Service Line"] || r.ServiceLine || "").trim();
+  const dealsSLCol    = detectSLCol(dealsRows);
+  const pipelineSLCol = detectSLCol(pipelineRows);
+  const bonusSLCol    = detectSLCol(bonusRows);
+
   EMBEDDED_DATA.deals = dealsRows.map(r => ({
     Month: String(r.Month || ""), Client: String(r.Client || ""),
     Type: String(r.Type || ""), Scope: String(r.Scope || ""),
     "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
-    ServiceLine: slKey(r)
+    ServiceLine: getSL(r, dealsSLCol)
   }));
 
   EMBEDDED_DATA.pipeline = pipelineRows.map(r => ({
@@ -876,14 +903,14 @@ function applyParsedData(metricsRows, dealsRows, pipelineRows, bonusRows) {
     "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
     "Weighted ACV ($M)": parseNum(r["Weighted ACV ($M)"]) || 0,
     "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low"),
-    ServiceLine: slKey(r)
+    ServiceLine: getSL(r, pipelineSLCol)
   }));
 
   EMBEDDED_DATA.bonus = bonusRows.map(r => ({
     Client: String(r.Client || ""),
     "Estimated Bonus ($M)": parseNum(r["Estimated Bonus ($M)"]) || 0,
     "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low"),
-    ServiceLine: slKey(r)
+    ServiceLine: getSL(r, bonusSLCol)
   }));
 
   EMBEDDED_DATA.forecasts = forecasts;
