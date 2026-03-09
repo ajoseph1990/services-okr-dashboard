@@ -1086,11 +1086,18 @@ function fmtM(v) { const n = +v.toFixed(2); return "$" + (n % 1 === 0 ? n.toFixe
 function fmtK(v) { return "$" + (v * 1000).toFixed(0) + "K"; }
 
 function filterBySL(arr, sl) {
-  // Check if ANY row has the ServiceLine key set (even empty string counts as "column exists")
-  const hasColumn = arr.some(x => Object.prototype.hasOwnProperty.call(x, "ServiceLine"));
-  if (!hasColumn) return arr; // column doesn't exist at all — show everything (no Excel loaded)
-  const s = sl.toLowerCase();
-  return arr.filter(x => x.ServiceLine && x.ServiceLine.toLowerCase().includes(s));
+  // If no row has a non-empty ServiceLine, column is absent or unpopulated — show everything
+  const hasValues = arr.some(x => x.ServiceLine);
+  if (!hasValues) return arr;
+
+  const s = sl.toLowerCase().trim();
+  return arr.filter(x => {
+    if (!x.ServiceLine) return false;
+    const v = x.ServiceLine.toLowerCase().trim();
+    // "MS" tab: match "ms", "managed services", "managed service", etc.
+    if (s === "ms") return v === "ms" || v.startsWith("managed") || v === "ms";
+    return v.includes(s);
+  });
 }
 
 function pctColor(pct, low = false) {
