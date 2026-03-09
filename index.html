@@ -223,7 +223,9 @@ body {
 .sub-fill.amber { background: var(--amber); }
 .sub-fill.red { background: var(--red); }
 
-.sub-value { font-size: 14px; font-weight: 700; color: var(--text); min-width: 70px; text-align: right; }
+.sub-right { text-align: right; min-width: 80px; }
+.sub-value { font-size: 14px; font-weight: 700; color: var(--text); }
+.sub-tgt { font-size: 11px; color: var(--text2); margin-top: 2px; }
 
 .section-divider { display: flex; align-items: center; justify-content: center; margin: 40px 0 28px; }
 
@@ -1211,12 +1213,22 @@ function heroCard(opts) {
     subsHtml = subs.map(s => {
       const sPct = s.t ? Math.min((s.v / s.t) * 100, 100) : 0;
       const sColor = pctColor(s.t ? (s.v / s.t) * 100 : 0, s.low);
+      let tgtFmt = "";
+      if (s.t) {
+        if (s.value.includes("%")) tgtFmt = s.t.toFixed(0) + "%";
+        else if (s.value.endsWith("M")) tgtFmt = fmtM(s.t);
+        else if (s.value.endsWith("K")) tgtFmt = fmtK(s.t);
+        else tgtFmt = s.t.toFixed(1);
+      }
       return `<div class="sub-metric">
         <div class="sub-left">
           <div class="sub-label">${s.label}</div>
           <div class="sub-bar"><div class="sub-fill ${sColor}" style="width:${sPct}%"></div></div>
         </div>
-        <div class="sub-value">${s.value}</div>
+        <div class="sub-right">
+          <div class="sub-value">${s.value}</div>
+          ${tgtFmt ? `<div class="sub-tgt">Tgt: ${tgtFmt}</div>` : ""}
+        </div>
       </div>`;
     }).join("");
   }
