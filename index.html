@@ -675,19 +675,18 @@ async function loadSharePointData(silent = false) {
       readSheet(token, driveId, itemId, SP_CONFIG.sheets.bonus)
     ]);
 
-    // Parse forecasts
-    const forecastRows = metricsRows.filter(r => String(r.Metric || "").startsWith("Forecast"));
-    const forecasts = {};
-    forecastRows.forEach(r => {
-      const key = String(r.Metric).replace("Forecast - ", "").trim();
-      forecasts[key] = parseFloat(r.Value || r["Annual Target"] || 0) || 0;
-    });
-    const finalForecasts = Object.keys(forecasts).length > 0 ? forecasts : _ORIGINAL_EMBEDDED_DATA.forecasts;
-
-    // Normalise
+    // Parse forecasts from column P ("Forecast" column) on each metric row
     const parseNum = v => (v === null || v === "" || v === undefined) ? undefined : parseFloat(v) || 0;
+    const forecasts = {};
+    metricsRows
+      .filter(r => r.Metric && !String(r.Metric).startsWith("MTD Target"))
+      .forEach(r => {
+        const fv = parseNum(r["Forecast"]);
+        if (fv != null && fv > 0) forecasts[String(r.Metric).trim()] = fv;
+      });
+
     EMBEDDED_DATA.metrics = metricsRows
-      .filter(r => r.Metric && !String(r.Metric).startsWith("Forecast"))
+      .filter(r => r.Metric)
       .map(r => {
         const obj = { Metric: String(r.Metric).trim() };
         if (r["Annual Target"] != null) obj["Annual Target"] = parseNum(r["Annual Target"]);
@@ -697,23 +696,27 @@ async function loadSharePointData(silent = false) {
         if (r.YTD != null) obj.YTD = parseNum(r.YTD);
         return obj;
       });
+    const slKey = r => String(r["MS/Consulting/Strategy"] || r["Service Line"] || r.ServiceLine || "").trim();
     EMBEDDED_DATA.deals = dealsRows.map(r => ({
       Month: String(r.Month || ""), Client: String(r.Client || ""),
       Type: String(r.Type || ""), Scope: String(r.Scope || ""),
-      "ACV ($M)": parseNum(r["ACV ($M)"]) || 0
+      "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
+      ServiceLine: slKey(r)
     }));
     EMBEDDED_DATA.pipeline = pipelineRows.map(r => ({
       Client: String(r.Client || ""), Scope: String(r.Scope || ""),
       "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
       "Weighted ACV ($M)": parseNum(r["Weighted ACV ($M)"]) || 0,
-      "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
+      "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low"),
+      ServiceLine: slKey(r)
     }));
     EMBEDDED_DATA.bonus = bonusRows.map(r => ({
       Client: String(r.Client || ""),
       "Estimated Bonus ($M)": parseNum(r["Estimated Bonus ($M)"]) || 0,
-      "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
+      "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low"),
+      ServiceLine: slKey(r)
     }));
-    EMBEDDED_DATA.forecasts = finalForecasts;
+    EMBEDDED_DATA.forecasts = forecasts;
 
     isLiveData = true;
     lastSyncTime = new Date();
@@ -830,15 +833,17 @@ function parseLocalExcel(file) {
 function applyParsedData(metricsRows, dealsRows, pipelineRows, bonusRows) {
   const parseNum = v => (v === null || v === "" || v === undefined) ? undefined : parseFloat(v) || 0;
 
-  const forecastRows = metricsRows.filter(r => String(r.Metric || "").startsWith("Forecast"));
+  // Read forecasts from column P ("Forecast" column) on each metric row
   const forecasts = {};
-  forecastRows.forEach(r => {
-    const key = String(r.Metric).replace("Forecast - ", "").trim();
-    forecasts[key] = parseNum(r.Value || r["Annual Target"]) || 0;
-  });
+  metricsRows
+    .filter(r => r.Metric && !String(r.Metric).startsWith("MTD Target"))
+    .forEach(r => {
+      const fv = parseNum(r["Forecast"]);
+      if (fv != null && fv > 0) forecasts[String(r.Metric).trim()] = fv;
+    });
 
   EMBEDDED_DATA.metrics = metricsRows
-    .filter(r => r.Metric && !String(r.Metric).startsWith("Forecast"))
+    .filter(r => r.Metric)
     .map(r => {
       const obj = { Metric: String(r.Metric).trim() };
       if (r["Annual Target"] != null) obj["Annual Target"] = parseNum(r["Annual Target"]);
@@ -849,26 +854,30 @@ function applyParsedData(metricsRows, dealsRows, pipelineRows, bonusRows) {
       return obj;
     });
 
+  const slKey = r => String(r["MS/Consulting/Strategy"] || r["Service Line"] || r.ServiceLine || "").trim();
   EMBEDDED_DATA.deals = dealsRows.map(r => ({
     Month: String(r.Month || ""), Client: String(r.Client || ""),
     Type: String(r.Type || ""), Scope: String(r.Scope || ""),
-    "ACV ($M)": parseNum(r["ACV ($M)"]) || 0
+    "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
+    ServiceLine: slKey(r)
   }));
 
   EMBEDDED_DATA.pipeline = pipelineRows.map(r => ({
     Client: String(r.Client || ""), Scope: String(r.Scope || ""),
     "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
     "Weighted ACV ($M)": parseNum(r["Weighted ACV ($M)"]) || 0,
-    "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
+    "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low"),
+    ServiceLine: slKey(r)
   }));
 
   EMBEDDED_DATA.bonus = bonusRows.map(r => ({
     Client: String(r.Client || ""),
     "Estimated Bonus ($M)": parseNum(r["Estimated Bonus ($M)"]) || 0,
-    "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
+    "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low"),
+    ServiceLine: slKey(r)
   }));
 
-  EMBEDDED_DATA.forecasts = Object.keys(forecasts).length > 0 ? forecasts : _ORIGINAL_EMBEDDED_DATA.forecasts;
+  EMBEDDED_DATA.forecasts = forecasts;
 }
 
 function clearLocalFile() {
@@ -887,97 +896,13 @@ function clearLocalFile() {
 </script>
 
 <script>
-// ===== EMBEDDED DATA WITH YTD FROM COLUMN O =====
+// ===== DEFAULT DATA — load your Excel file to populate =====
 const EMBEDDED_DATA = {
-  metrics: [
-    {"Metric": "Rev Total ($M)", "Annual Target": 345, "Jan": 25.0, "Feb": 25.4, "YTD": 50.4},
-    {"Metric": "MTD Target - Rev Total ($M)", "Jan": 24.3, "Feb": 25.7, "YTD": 50},
-    {"Metric": "Rev Strategy ($M)", "Annual Target": 10, "Jan": 0.151, "Feb": 0.153, "YTD": 0.304},
-    {"Metric": "MTD Target - Rev Strategy ($M)", "Jan": 0.833, "Feb": 0.833, "YTD": 1.666},
-    {"Metric": "Rev Consulting ($M)", "Annual Target": 100, "Jan": 5.16, "Feb": 5.67, "YTD": 10.83},
-    {"Metric": "MTD Target - Rev Consulting ($M)", "Jan": 6.7, "Feb": 8.0, "YTD": 14.7},
-    {"Metric": "Rev MS ($M)", "Annual Target": 235, "Jan": 19.7, "Feb": 19.53, "YTD": 39.23},
-    {"Metric": "MTD Target - Rev MS ($M)", "Jan": 16.8, "Feb": 16.8, "YTD": 33.6},
-    {"Metric": "Consulting New Offerings %", "Annual Target": 30, "Jan": 22.0, "Feb": 25.0, "YTD": 24},
-    {"Metric": "ACV Total ($M)", "Annual Target": 175, "Jan": 13.6, "Feb": 7.5, "YTD": 21.1},
-    {"Metric": "MTD Target - ACV Total ($M)", "Jan": 12.9, "Feb": 12.9, "YTD": 25.8},
-    {"Metric": "ACV New Logos ($M)", "Annual Target": 65, "Jan": 10.5, "Feb": 4.1, "YTD": 14.6},
-    {"Metric": "MTD Target - ACV New Logos ($M)", "Jan": 5.6, "Feb": 5.6, "YTD": 11.2},
-    {"Metric": "ACV Upsell ($M)", "Annual Target": 110, "Jan": 3.1, "Feb": 3.4, "YTD": 6.5},
-    {"Metric": "MTD Target - ACV Upsell ($M)", "Jan": 7.2, "Feb": 7.2, "YTD": 14.4},
-    {"Metric": "Pipeline Carry %", "Annual Target": 15, "Jan": 0, "Feb": 0, "YTD": 0},
-    {"Metric": "Margin Overall %", "Annual Target": 30, "Jan": 20.9, "Feb": 0, "YTD": 20.9},
-    {"Metric": "MTD Target - Margin %", "Jan": 30.0, "Feb": 30.0, "YTD": 30},
-    {"Metric": "Utilization %", "Annual Target": 84, "Jan": 83.0, "Feb": 0, "YTD": 83},
-    {"Metric": "MTD Target - Utilization %", "Jan": 84.0, "Feb": 84.0, "YTD": 84},
-    {"Metric": "Consulting Margin %", "Annual Target": 42, "Jan": 26.0, "Feb": 0, "YTD": 26},
-    {"Metric": "Consulting Util %", "Annual Target": 82, "Jan": 78.0, "Feb": 0, "YTD": 78},
-    {"Metric": "MS Margin %", "Annual Target": 27, "Jan": 20.0, "Feb": 0, "YTD": 20},
-    {"Metric": "MS Util %", "Annual Target": 88, "Jan": 90.0, "Feb": 0, "YTD": 90},
-    {"Metric": "MS Renewal %", "Annual Target": 75, "Jan": 48.0, "Feb": 65.0, "YTD": 65},
-    {"Metric": "Agents Created", "Annual Target": 5000, "Jan": 310, "Feb": 680, "YTD": 990},
-    {"Metric": "MTD Target - Agents Created", "Jan": 350, "Feb": 400, "YTD": 750},
-    {"Metric": "Agentic ARR ($M)", "Annual Target": 10, "Jan": 0.4, "Feb": 0.4, "YTD": 0.8},
-    {"Metric": "MTD Target - Agentic ARR ($M)", "Jan": 0.83, "Feb": 0.83, "YTD": 1.66},
-    {"Metric": "AI Efficiency %", "Annual Target": 20, "Jan": 9.0, "Feb": 11.0, "YTD": 10},
-    {"Metric": "CSAT %", "Annual Target": 5, "Jan": 2.0, "Feb": 2.5, "YTD": 2.25},
-    {"Metric": "ESAT %", "Annual Target": 5, "Jan": 1.8, "Feb": 2.1, "YTD": 1.95},
-    {"Metric": "Voluntary Attrition %", "Annual Target": 15, "Jan": 16.0, "Feb": 15.5, "YTD": 15.75},
-    {"Metric": "Regrettable Attrition %", "Annual Target": 7, "Jan": 7.5, "Feb": 7.2, "YTD": 7.35},
-    {"Metric": "Mgr Retention %", "Annual Target": 90, "Jan": 87.0, "Feb": 88.0, "YTD": 87.5},
-    {"Metric": "Lateral Hire Success %", "Annual Target": 50, "Jan": 48.0, "Feb": 50.0, "YTD": 49},
-    {"Metric": "Diversity Score %", "Annual Target": 80, "Jan": 62.0, "Feb": 63.0, "YTD": 62.5},
-    {"Metric": "SC Revenue ($M)", "Annual Target": 10, "Jan": 0.6, "Feb": 1.2, "YTD": 1.8},
-    {"Metric": "SC Pipeline ($M)", "Annual Target": 15, "Jan": 0.8, "Feb": 1.5, "YTD": 2.3},
-    {"Metric": "SC Customers", "Annual Target": 5, "Jan": 0, "Feb": 0, "YTD": 0},
-    {"Metric": "SC Thought Leadership", "Annual Target": 5, "Jan": 1.0, "Feb": 2.0, "YTD": 3}
-  ],
-  // FORECASTS from Excel (Updated by user)
-  forecasts: {
-    "Rev Total ($M)": 318,
-    "Rev Strategy ($M)": 0,
-    "Rev Consulting ($M)": 90,
-    "Rev MS ($M)": 228
-  },
-  deals: [
-    {"Month": "Jan", "Client": "NIKE Inc", "Type": "New", "Scope": "NIKE - Steady State Fees", "ACV ($M)": 3.246},
-    {"Month": "Jan", "Client": "Genuine Parts Company", "Type": "New", "Scope": "NAPA Auto Parts - Accelerated Cost Takeout", "ACV ($M)": 5.0},
-    {"Month": "Jan", "Client": "Philips Electronics", "Type": "Existing", "Scope": "Philips - S2C Operating Charges", "ACV ($M)": 1.78},
-    {"Month": "Jan", "Client": "Signet Jewelers", "Type": "Existing", "Scope": "Signet Jewelers - Accelerated Sourcing", "ACV ($M)": 0.75},
-    {"Month": "Jan", "Client": "NIKE Inc", "Type": "New", "Scope": "NIKE - NA/EMEA SWAT Team", "ACV ($M)": 0.558},
-    {"Month": "Feb", "Client": "Logitech Europe", "Type": "New", "Scope": "Logitech - Steady State Fees", "ACV ($M)": 1.71},
-    {"Month": "Feb", "Client": "Unilever", "Type": "Existing", "Scope": "Unilever - JEDI", "ACV ($M)": 1.10},
-    {"Month": "Feb", "Client": "Oliver Wyman", "Type": "New", "Scope": "Oliver Wyman - MRO Cost Takeout Program", "ACV ($M)": 0.845},
-    {"Month": "Feb", "Client": "GE Healthcare", "Type": "New", "Scope": "GE - Procure to Settle Steady State", "ACV ($M)": 0.682},
-    {"Month": "Feb", "Client": "Eaton Industries", "Type": "New", "Scope": "Eaton - Direct Material Tail Spend", "ACV ($M)": 0.653}
-  ],
-  pipeline: [
-    {"Client": "Nexans", "Scope": "Nexans S2P 2026", "ACV ($M)": 5.8, "Weighted ACV ($M)": 2.9, "Probability (H/M/L)": "Med"},
-    {"Client": "Nestle SA", "Scope": "Nestle SA Tail Spend", "ACV ($M)": 5.0, "Weighted ACV ($M)": 2.5, "Probability (H/M/L)": "Med"},
-    {"Client": "Monogram Foods", "Scope": "Monogram Foods Procurement - Extension", "ACV ($M)": 3.3, "Weighted ACV ($M)": 1.65, "Probability (H/M/L)": "Med"},
-    {"Client": "APi Group", "Scope": "API Group Strategic Value Capture", "ACV ($M)": 2.07, "Weighted ACV ($M)": 1.87, "Probability (H/M/L)": "High"},
-    {"Client": "Google Inc.", "Scope": "Google Consulting Data Center", "ACV ($M)": 3.0, "Weighted ACV ($M)": 0.9, "Probability (H/M/L)": "Low"},
-    {"Client": "PG&E Corporation", "Scope": "PG&E - Cost Take Out 2026", "ACV ($M)": 1.6, "Weighted ACV ($M)": 1.12, "Probability (H/M/L)": "High"},
-    {"Client": "Unilever", "Scope": "Unilever H&W COGS Value Acceleration", "ACV ($M)": 1.5, "Weighted ACV ($M)": 1.35, "Probability (H/M/L)": "High"},
-    {"Client": "Open AI", "Scope": "MNG SVC - POps, AP, T&E", "ACV ($M)": 1.0, "Weighted ACV ($M)": 0.15, "Probability (H/M/L)": "Low"}
-  ],
-  bonus: [
-    {"Client": "Mercedes-Benz AG", "Estimated Bonus ($M)": 3.0, "Probability (H/M/L)": "Low"},
-    {"Client": "WestRock Company", "Estimated Bonus ($M)": 2.4, "Probability (H/M/L)": "Low"},
-    {"Client": "NEOM", "Estimated Bonus ($M)": 1.65, "Probability (H/M/L)": "Low"},
-    {"Client": "Koninklijke Philips N.V.", "Estimated Bonus ($M)": 1.55, "Probability (H/M/L)": "Low"},
-    {"Client": "Unilever PLC", "Estimated Bonus ($M)": 1.0, "Probability (H/M/L)": "Low"},
-    {"Client": "Safe Harbor Marinas LLC", "Estimated Bonus ($M)": 0.85, "Probability (H/M/L)": "Low"},
-    {"Client": "Cargill Inc.", "Estimated Bonus ($M)": 0.833, "Probability (H/M/L)": "High"},
-    {"Client": "US Foods, Inc.", "Estimated Bonus ($M)": 0.8, "Probability (H/M/L)": "Low"},
-    {"Client": "Signet Jewelers", "Estimated Bonus ($M)": 0.75, "Probability (H/M/L)": "Med"},
-    {"Client": "The Walt Disney Company", "Estimated Bonus ($M)": 0.5, "Probability (H/M/L)": "Low"},
-    {"Client": "Phillip Morris", "Estimated Bonus ($M)": 0.31, "Probability (H/M/L)": "High"},
-    {"Client": "L'Oreal USA, Inc.", "Estimated Bonus ($M)": 0.292, "Probability (H/M/L)": "High"},
-    {"Client": "Monogram Food Solutions LLC", "Estimated Bonus ($M)": 0.18, "Probability (H/M/L)": "High"},
-    {"Client": "VivaAerobus Mexico", "Estimated Bonus ($M)": 0.169, "Probability (H/M/L)": "Med"},
-    {"Client": "Unilever", "Estimated Bonus ($M)": 0.13, "Probability (H/M/L)": "High"}
-  ]
+  metrics: [],
+  forecasts: {},
+  deals: [],
+  pipeline: [],
+  bonus: []
 };
 
 // ===== GLOBAL STATE =====
@@ -1142,6 +1067,13 @@ function compute(months) {
 
 function fmtM(v) { return "$" + v.toFixed(1) + "M"; }
 function fmtK(v) { return "$" + (v * 1000).toFixed(0) + "K"; }
+
+function filterBySL(arr, sl) {
+  const hasAny = arr.some(x => x.ServiceLine);
+  if (!hasAny) return arr;
+  const s = sl.toLowerCase();
+  return arr.filter(x => x.ServiceLine && x.ServiceLine.toLowerCase().includes(s));
+}
 
 function pctColor(pct, low = false) {
   if (low) return pct <= 100 ? "green" : pct <= 120 ? "amber" : "red";
@@ -1435,9 +1367,9 @@ function render() {
         mIdx: currentMonth,
         isRevOrMargin: true,
         subs: [
-          { label: "Strategy", value: fmtK(d.rev.strategy), v: d.rev.strategy, t: viewMode === "YTD" ? getMTDYTD("Rev Strategy ($M)") : ANN_TGT.revStrategy * pF },
-          { label: "Consulting", value: fmtM(d.rev.consulting), v: d.rev.consulting, t: viewMode === "YTD" ? getMTDYTD("Rev Consulting ($M)") : ANN_TGT.revConsulting * pF },
-          { label: "Managed Services", value: fmtM(d.rev.ms), v: d.rev.ms, t: viewMode === "YTD" ? getMTDYTD("Rev MS ($M)") : ANN_TGT.revMS * pF }
+          { label: "Strategy", value: fmtK(d.rev.strategy), v: d.rev.strategy, t: viewMode === "YTD" ? getMTDYTD("Rev Strategy ($M)") : getMTD("Rev Strategy ($M)", mName) || ANN_TGT.revStrategy / 12 },
+          { label: "Consulting", value: fmtM(d.rev.consulting), v: d.rev.consulting, t: viewMode === "YTD" ? getMTDYTD("Rev Consulting ($M)") : getMTD("Rev Consulting ($M)", mName) || ANN_TGT.revConsulting / 12 },
+          { label: "Managed Services", value: fmtM(d.rev.ms), v: d.rev.ms, t: viewMode === "YTD" ? getMTDYTD("Rev MS ($M)") : getMTD("Rev MS ($M)", mName) || ANN_TGT.revMS / 12 }
         ]
       })}
       ${viewMode !== "FORECAST" ? heroCard({ 
@@ -1450,8 +1382,8 @@ function render() {
         unit: "$M", 
         mIdx: currentMonth, 
         subs: [
-          { label: "New Logos", value: fmtM(d.acv.newLogo), v: d.acv.newLogo, t: viewMode === "YTD" ? getMTDYTD("ACV New Logos ($M)") : ANN_TGT.acvNewLogo * pF },
-          { label: "Upsell", value: fmtM(d.acv.upsell), v: d.acv.upsell, t: viewMode === "YTD" ? getMTDYTD("ACV Upsell ($M)") : ANN_TGT.acvUpsell * pF },
+          { label: "New Logos", value: fmtM(d.acv.newLogo), v: d.acv.newLogo, t: viewMode === "YTD" ? getMTDYTD("ACV New Logos ($M)") : getMTD("ACV New Logos ($M)", mName) || ANN_TGT.acvNewLogo / 12 },
+          { label: "Upsell", value: fmtM(d.acv.upsell), v: d.acv.upsell, t: viewMode === "YTD" ? getMTDYTD("ACV Upsell ($M)") : getMTD("ACV Upsell ($M)", mName) || ANN_TGT.acvUpsell / 12 },
           { label: "Pipeline Carry FY'27", value: d.acv.pipelineCarry.toFixed(0) + "%", v: d.acv.pipelineCarry, t: ANN_TGT.pipelineCarry }
         ]
       }) : ''}
@@ -1467,9 +1399,9 @@ function render() {
         mIdx: currentMonth,
         isRevOrMargin: true,
         subs: [
-          { label: "Blended Utilization", value: d.mg.util.toFixed(0) + "%", v: d.mg.util, t: ANN_TGT.util },
-          { label: "Consulting Margin", value: d.mg.conM.toFixed(0) + "%", v: d.mg.conM, t: ANN_TGT.conM },
-          { label: "MS Margin", value: d.mg.msM.toFixed(0) + "%", v: d.mg.msM, t: ANN_TGT.msM }
+          { label: "Blended Utilization", value: d.mg.util.toFixed(0) + "%", v: d.mg.util, t: getMTD("Utilization %", mName) || ANN_TGT.util },
+          { label: "Consulting Margin", value: d.mg.conM.toFixed(0) + "%", v: d.mg.conM, t: getMTD("Consulting Margin %", mName) || ANN_TGT.conM },
+          { label: "MS Margin", value: d.mg.msM.toFixed(0) + "%", v: d.mg.msM, t: getMTD("MS Margin %", mName) || ANN_TGT.msM }
         ]
       })}
       ${viewMode !== "FORECAST" ? heroCard({ 
@@ -1514,23 +1446,26 @@ function render() {
   }
   
   if (activeTab === "consulting") {
-    html += `<div class="hero-grid" style="grid-template-columns:repeat(3,1fr)">
+    const conCols = viewMode === "FORECAST" ? 3 : 4;
+    html += `<div class="hero-grid" style="grid-template-columns:repeat(${conCols},1fr)">
       ${heroCard({ label: "CONSULTING REVENUE", value: fmtM(d.rev.consulting), actual: d.rev.consulting, mtdTgt: getMTD("Rev Consulting ($M)", mName), ytdTgt: getMTDYTD("Rev Consulting ($M)"), annTgt: ANN_TGT.revConsulting, forecast: d.rev.forecastConsulting, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "CONSULTING MARGIN", value: d.mg.conM.toFixed(0) + "%", actual: d.mg.conM, mtdTgt: 37, annTgt: ANN_TGT.conM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "ACV - NEW LOGOS", value: fmtM(d.acv.newLogo), actual: d.acv.newLogo, mtdTgt: getMTD("ACV New Logos ($M)", mName), ytdTgt: getMTDYTD("ACV New Logos ($M)"), annTgt: ANN_TGT.acvNewLogo, unit: "$M", mIdx: currentMonth })}
+      ${heroCard({ label: "CONSULTING MARGIN", value: d.mg.conM.toFixed(0) + "%", actual: d.mg.conM, mtdTgt: getMTD("Consulting Margin %", mName) || 37, ytdTgt: getMTDYTD("Consulting Margin %") || 37, annTgt: ANN_TGT.conM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
+      ${heroCard({ label: "CONSULTING UTILIZATION", value: d.mg.conU.toFixed(0) + "%", actual: d.mg.conU, mtdTgt: getMTD("Consulting Util %", mName) || ANN_TGT.conU, ytdTgt: getMTDYTD("Consulting Util %") || ANN_TGT.conU, annTgt: ANN_TGT.conU, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "ACV - NEW LOGOS", value: fmtM(d.acv.newLogo), actual: d.acv.newLogo, mtdTgt: getMTD("ACV New Logos ($M)", mName), ytdTgt: getMTDYTD("ACV New Logos ($M)"), annTgt: ANN_TGT.acvNewLogo, unit: "$M", mIdx: currentMonth }) : ''}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
-    html += dealSection(d.deals.filter(x => x.Type === "New"), d.pipeline, d.bonus, viewMode === "FORECAST");
+    html += dealSection(filterBySL(d.deals, "Consulting"), filterBySL(d.pipeline, "Consulting"), filterBySL(d.bonus, "Consulting"), viewMode === "FORECAST");
   }
-  
+
   if (activeTab === "ms") {
-    html += `<div class="hero-grid" style="grid-template-columns:repeat(3,1fr)">
+    html += `<div class="hero-grid" style="grid-template-columns:repeat(4,1fr)">
       ${heroCard({ label: "MS REVENUE", value: fmtM(d.rev.ms), actual: d.rev.ms, mtdTgt: getMTD("Rev MS ($M)", mName), ytdTgt: getMTDYTD("Rev MS ($M)"), annTgt: ANN_TGT.revMS, forecast: d.rev.forecastMS, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "MS MARGIN", value: d.mg.msM.toFixed(0) + "%", actual: d.mg.msM, mtdTgt: 23, annTgt: ANN_TGT.msM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "MS MARGIN", value: d.mg.msM.toFixed(0) + "%", actual: d.mg.msM, mtdTgt: getMTD("MS Margin %", mName) || 23, ytdTgt: getMTDYTD("MS Margin %") || 23, annTgt: ANN_TGT.msM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
+      ${heroCard({ label: "MS UTILIZATION", value: d.mg.msU.toFixed(0) + "%", actual: d.mg.msU, mtdTgt: getMTD("MS Util %", mName) || ANN_TGT.msU, ytdTgt: getMTDYTD("MS Util %") || ANN_TGT.msU, annTgt: ANN_TGT.msU, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: getMTD("MS Renewal %", mName) || 60, ytdTgt: getMTDYTD("MS Renewal %") || 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth })}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
-    html += dealSection(d.deals.filter(x => x.Type === "Existing"), d.pipeline, d.bonus, viewMode === "FORECAST");
+    html += dealSection(filterBySL(d.deals, "MS"), filterBySL(d.pipeline, "MS"), filterBySL(d.bonus, "MS"), viewMode === "FORECAST");
   }
   
   if (activeTab === "people") {
@@ -1563,6 +1498,8 @@ function render() {
         { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: ANN_TGT.scThought * (currentMonth + 1) / 12, unit: "" }
       ])}
     </div>`;
+    html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
+    html += dealSection(filterBySL(d.deals, "Strategy"), filterBySL(d.pipeline, "Strategy"), filterBySL(d.bonus, "Strategy"), viewMode === "FORECAST");
   }
   
   document.getElementById("main").innerHTML = html;
