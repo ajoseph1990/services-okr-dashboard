@@ -352,6 +352,10 @@ body {
 
 .user-name { font-size: 13px; font-weight: 500; color: #374151; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.sync-label {
+  font-size: 11px; color: #9ca3af; white-space: nowrap;
+}
+
 .loading-overlay {
   position: fixed; inset: 0; background: rgba(255,255,255,0.85);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -446,9 +450,14 @@ const SP_CONFIG = {
 let msalInstance = null;
 let currentAccount = null;
 let isLiveData = false;
+let lastFileModified = null;   // ISO string from Graph API
+let lastSyncTime = null;       // Date object of last successful sync
+let pollIntervalId = null;
+let syncLabelIntervalId = null;
+const POLL_MS = 5 * 60 * 1000; // check for file changes every 5 minutes
 
 function initMSAL() {
-  if (SP_CONFIG.clientId === "YOUR_CLIENT_ID_HERE") return; // Not configured yet
+  if (SP_CONFIG.clientId === "YOUR_CLIENT_ID_HERE") return;
   try {
     msalInstance = new msal.PublicClientApplication({
       auth: {
@@ -458,7 +467,6 @@ function initMSAL() {
       },
       cache: { cacheLocation: "sessionStorage" }
     });
-    // Check for existing session
     const accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
       currentAccount = accounts[0];
@@ -472,7 +480,7 @@ function initMSAL() {
 
 async function signIn() {
   if (!msalInstance) {
-    alert("SharePoint is not configured yet.\n\nTo connect, an Azure AD App Registration is needed.\nSee README for setup instructions.");
+    alert("SharePoint is not configured yet.\n\nAn Azure AD App Registration is needed.\nSee README for setup instructions.");
     return;
   }
   try {
@@ -483,26 +491,25 @@ async function signIn() {
     showUserInfo(currentAccount);
     await loadSharePointData();
   } catch(e) {
-    if (!e.message?.includes("user_cancelled")) {
-      alert("Sign in failed: " + e.message);
-    }
+    if (!e.message?.includes("user_cancelled")) alert("Sign in failed: " + e.message);
   }
 }
 
 async function signOut() {
   if (!msalInstance) return;
+  stopPolling();
   await msalInstance.logoutPopup({ account: currentAccount });
-  currentAccount = null;
-  isLiveData = false;
+  currentAccount = null; isLiveData = false; lastFileModified = null; lastSyncTime = null;
   document.getElementById("authArea").innerHTML = `
-    <button class="auth-btn" id="signInBtn" onclick="signIn()">
+    <button class="auth-btn" onclick="signIn()">
       <svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
       Connect to SharePoint
     </button>`;
-  // Reset to embedded data
   Object.assign(EMBEDDED_DATA, _ORIGINAL_EMBEDDED_DATA);
   init();
 }
+
+// ---- UI helpers ----
 
 function showUserInfo(account) {
   const name = account.name || account.username;
@@ -511,11 +518,66 @@ function showUserInfo(account) {
       <span class="data-badge ${isLiveData ? 'live' : 'embedded'}" id="dataBadge">
         ${isLiveData ? 'Live Data' : 'Connecting...'}
       </span>
-      <button class="refresh-btn" id="refreshBtn" onclick="loadSharePointData()">↻ Refresh</button>
+      <span class="sync-label" id="syncLabel"></span>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadSharePointData(false)">↻ Refresh</button>
       <span class="user-name" title="${name}">${name}</span>
       <button class="signout-btn" onclick="signOut()">Sign out</button>
     </div>`;
+  updateSyncLabel();
 }
+
+function updateSyncLabel() {
+  const el = document.getElementById("syncLabel");
+  if (!el) return;
+  if (!lastSyncTime) { el.textContent = ""; return; }
+  const mins = Math.floor((Date.now() - lastSyncTime.getTime()) / 60000);
+  el.textContent = mins < 1 ? "Synced just now" : `Synced ${mins}m ago`;
+}
+
+function flashUpdated() {
+  const el = document.getElementById("dataBadge");
+  if (!el) return;
+  el.textContent = "✓ Updated!";
+  el.style.background = "#bfdbfe"; el.style.color = "#1e3a8a";
+  setTimeout(() => {
+    el.className = "data-badge live";
+    el.textContent = "Live Data";
+    el.style.background = ""; el.style.color = "";
+  }, 3000);
+}
+
+// ---- Polling ----
+
+function startPolling() {
+  stopPolling();
+  pollIntervalId = setInterval(() => checkForUpdates(), POLL_MS);
+  syncLabelIntervalId = setInterval(() => updateSyncLabel(), 60000);
+}
+
+function stopPolling() {
+  if (pollIntervalId)    { clearInterval(pollIntervalId);    pollIntervalId = null; }
+  if (syncLabelIntervalId) { clearInterval(syncLabelIntervalId); syncLabelIntervalId = null; }
+}
+
+async function checkForUpdates() {
+  if (!currentAccount || !lastFileModified) return;
+  try {
+    const token = await getGraphToken();
+    const site = await graphGet(token, `/sites/${SP_CONFIG.sharePointHost}:${SP_CONFIG.sitePath}`);
+    const search = await graphGet(token, `/sites/${site.id}/drive/root/search(q='${encodeURIComponent(SP_CONFIG.fileName)}')`);
+    const fileItem = search.value?.find(f => f.name === SP_CONFIG.fileName || f.name.includes("GEP_Services_OKR_Data"));
+    if (!fileItem) return;
+    const serverModified = fileItem.lastModifiedDateTime;
+    if (serverModified !== lastFileModified) {
+      console.log("SharePoint file changed — reloading data...");
+      await loadSharePointData(true); // silent = true (no loading overlay)
+    }
+  } catch(e) {
+    console.warn("Auto-check failed:", e.message);
+  }
+}
+
+// ---- Graph API ----
 
 async function getGraphToken() {
   const result = await msalInstance.acquireTokenSilent({
@@ -547,28 +609,32 @@ async function readSheet(token, driveId, itemId, sheetName) {
     });
 }
 
-async function loadSharePointData() {
+// ---- Main data loader ----
+// silent=false  → show full loading overlay (manual refresh / first load)
+// silent=true   → no overlay, background auto-update
+
+async function loadSharePointData(silent = false) {
   const refreshBtn = document.getElementById("refreshBtn");
   if (refreshBtn) refreshBtn.disabled = true;
-  showLoading("Connecting to SharePoint...");
+  const wasAlreadyLive = isLiveData;
+  if (!silent) showLoading("Connecting to SharePoint...");
+
   try {
     const token = await getGraphToken();
 
-    // 1. Get site
-    showLoading("Locating SharePoint site...");
+    if (!silent) showLoading("Locating SharePoint site...");
     const site = await graphGet(token, `/sites/${SP_CONFIG.sharePointHost}:${SP_CONFIG.sitePath}`);
 
-    // 2. Find the Excel file by name
-    showLoading("Finding Excel file...");
+    if (!silent) showLoading("Finding Excel file...");
     const search = await graphGet(token, `/sites/${site.id}/drive/root/search(q='${encodeURIComponent(SP_CONFIG.fileName)}')`);
     const fileItem = search.value?.find(f => f.name === SP_CONFIG.fileName || f.name.includes("GEP_Services_OKR_Data"));
     if (!fileItem) throw new Error(`File "${SP_CONFIG.fileName}" not found in SharePoint.`);
 
     const driveId = fileItem.parentReference?.driveId;
     const itemId  = fileItem.id;
+    lastFileModified = fileItem.lastModifiedDateTime;
 
-    // 3. Read all sheets in parallel
-    showLoading("Reading Excel data...");
+    if (!silent) showLoading("Reading Excel data...");
     const [metricsRows, dealsRows, pipelineRows, bonusRows] = await Promise.all([
       readSheet(token, driveId, itemId, SP_CONFIG.sheets.metrics),
       readSheet(token, driveId, itemId, SP_CONFIG.sheets.deals),
@@ -576,70 +642,64 @@ async function loadSharePointData() {
       readSheet(token, driveId, itemId, SP_CONFIG.sheets.bonus)
     ]);
 
-    // 4. Parse forecasts out of metrics (rows with "Forecast" in Metric column)
+    // Parse forecasts
     const forecastRows = metricsRows.filter(r => String(r.Metric || "").startsWith("Forecast"));
     const forecasts = {};
     forecastRows.forEach(r => {
       const key = String(r.Metric).replace("Forecast - ", "").trim();
       forecasts[key] = parseFloat(r.Value || r["Annual Target"] || 0) || 0;
     });
-    // Fallback: use EMBEDDED_DATA forecasts if none found
     const finalForecasts = Object.keys(forecasts).length > 0 ? forecasts : _ORIGINAL_EMBEDDED_DATA.forecasts;
 
-    // 5. Normalise numeric fields
+    // Normalise
     const parseNum = v => (v === null || v === "" || v === undefined) ? undefined : parseFloat(v) || 0;
-    const normalizedMetrics = metricsRows
+    EMBEDDED_DATA.metrics = metricsRows
       .filter(r => r.Metric && !String(r.Metric).startsWith("Forecast"))
       .map(r => {
         const obj = { Metric: String(r.Metric).trim() };
-        if (r["Annual Target"] !== null && r["Annual Target"] !== undefined) obj["Annual Target"] = parseNum(r["Annual Target"]);
+        if (r["Annual Target"] != null) obj["Annual Target"] = parseNum(r["Annual Target"]);
         ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].forEach(m => {
-          if (r[m] !== null && r[m] !== undefined) obj[m] = parseNum(r[m]);
+          if (r[m] != null) obj[m] = parseNum(r[m]);
         });
-        if (r.YTD !== null && r.YTD !== undefined) obj.YTD = parseNum(r.YTD);
+        if (r.YTD != null) obj.YTD = parseNum(r.YTD);
         return obj;
       });
-
-    const normalizedDeals = dealsRows.map(r => ({
-      Month:       String(r.Month || ""),
-      Client:      String(r.Client || ""),
-      Type:        String(r.Type || ""),
-      Scope:       String(r.Scope || ""),
-      "ACV ($M)":  parseNum(r["ACV ($M)"]) || 0
+    EMBEDDED_DATA.deals = dealsRows.map(r => ({
+      Month: String(r.Month || ""), Client: String(r.Client || ""),
+      Type: String(r.Type || ""), Scope: String(r.Scope || ""),
+      "ACV ($M)": parseNum(r["ACV ($M)"]) || 0
     }));
-
-    const normalizedPipeline = pipelineRows.map(r => ({
-      Client:                String(r.Client || ""),
-      Scope:                 String(r.Scope || ""),
-      "ACV ($M)":            parseNum(r["ACV ($M)"]) || 0,
-      "Weighted ACV ($M)":   parseNum(r["Weighted ACV ($M)"]) || 0,
+    EMBEDDED_DATA.pipeline = pipelineRows.map(r => ({
+      Client: String(r.Client || ""), Scope: String(r.Scope || ""),
+      "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
+      "Weighted ACV ($M)": parseNum(r["Weighted ACV ($M)"]) || 0,
       "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
     }));
-
-    const normalizedBonus = bonusRows.map(r => ({
-      Client:                   String(r.Client || ""),
-      "Estimated Bonus ($M)":   parseNum(r["Estimated Bonus ($M)"]) || 0,
-      "Probability (H/M/L)":    String(r["Probability (H/M/L)"] || r.Probability || "Low")
+    EMBEDDED_DATA.bonus = bonusRows.map(r => ({
+      Client: String(r.Client || ""),
+      "Estimated Bonus ($M)": parseNum(r["Estimated Bonus ($M)"]) || 0,
+      "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
     }));
-
-    // 6. Replace EMBEDDED_DATA with live data
-    EMBEDDED_DATA.metrics   = normalizedMetrics;
-    EMBEDDED_DATA.deals     = normalizedDeals;
-    EMBEDDED_DATA.pipeline  = normalizedPipeline;
-    EMBEDDED_DATA.bonus     = normalizedBonus;
     EMBEDDED_DATA.forecasts = finalForecasts;
 
     isLiveData = true;
+    lastSyncTime = new Date();
     hideLoading();
-    showUserInfo(currentAccount); // Update badge to "Live Data"
-    init(); // Re-render with live data
+    showUserInfo(currentAccount);
+    if (refreshBtn) refreshBtn.disabled = false;
+    if (wasAlreadyLive && silent) flashUpdated(); // pulse only on auto-update, not first load
+    init();
+    startPolling(); // (re)start polling after every successful load
 
   } catch(err) {
     hideLoading();
     console.error("SharePoint load error:", err);
-    const msg = err.message || String(err);
-    document.getElementById("authArea").innerHTML += `<span style="color:#ef4444;font-size:12px;margin-left:8px">⚠ ${msg}</span>`;
     if (refreshBtn) refreshBtn.disabled = false;
+    const errEl = document.createElement("span");
+    errEl.style.cssText = "color:#ef4444;font-size:12px;margin-left:8px";
+    errEl.textContent = "⚠ " + (err.message || String(err));
+    const area = document.getElementById("authArea");
+    if (area) { const old = area.querySelector(".err-msg"); if(old) old.remove(); errEl.className="err-msg"; area.appendChild(errEl); }
   }
 }
 
