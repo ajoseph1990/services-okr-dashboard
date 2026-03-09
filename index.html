@@ -833,29 +833,23 @@ function parseLocalExcel(file) {
   reader.readAsArrayBuffer(file);
 }
 
-// Detect which column holds the service-line value for a set of rows.
-// Strategy: 1) name-based (flexible match), 2) value-based scan.
+// Find the column whose VALUES are service-line labels (MS / Consulting / Strategy / Managed Services).
+// Score every column by how many of its rows contain a known label — pick the highest scorer.
+// This is purely value-based so the column header name doesn't matter at all.
 function detectSLCol(rows) {
   if (!rows || !rows.length) return null;
-  const norm = s => s.toLowerCase().replace(/[^a-z]/g, "");
-  const nameTargets = ["msconsultingstrategy", "serviceline", "service", "line", "division", "practice"];
-  // 1. Header-name match on first row
+  const isSlVal = v => {
+    const s = String(v || "").toLowerCase().trim();
+    return s === "ms" || s === "consulting" || s === "strategy" ||
+           s === "managed services" || s === "managed service" ||
+           s.startsWith("managed");
+  };
+  let bestCol = null, bestScore = 0;
   for (const k of Object.keys(rows[0])) {
-    const n = norm(k);
-    if (nameTargets.some(t => n === t || n.includes("consulting") || n.includes("service"))) {
-      return k;
-    }
+    const score = rows.reduce((n, r) => n + (isSlVal(r[k]) ? 1 : 0), 0);
+    if (score > bestScore) { bestScore = score; bestCol = k; }
   }
-  // 2. Value-based scan: find the column whose values are service-line labels
-  const slVals = ["ms", "consulting", "strategy", "managed services", "managed service"];
-  for (const k of Object.keys(rows[0])) {
-    const hits = rows.filter(r => {
-      const v = String(r[k] || "").toLowerCase().trim();
-      return slVals.includes(v) || v.startsWith("managed") || v === "consulting" || v === "strategy";
-    });
-    if (hits.length > 0) return k;
-  }
-  return null;
+  return bestScore > 0 ? bestCol : null;
 }
 
 function getSL(r, col) {
@@ -1113,16 +1107,16 @@ function fmtM(v) { const n = +v.toFixed(2); return "$" + (n % 1 === 0 ? n.toFixe
 function fmtK(v) { return "$" + (v * 1000).toFixed(0) + "K"; }
 
 function filterBySL(arr, sl) {
-  // If no row has a non-empty ServiceLine, column is absent or unpopulated — show everything
-  const hasValues = arr.some(x => x.ServiceLine);
-  if (!hasValues) return arr;
+  // If no row has a non-empty ServiceLine, column absent or undetected — show everything
+  if (!arr.some(x => x.ServiceLine)) return arr;
 
   const s = sl.toLowerCase().trim();
   return arr.filter(x => {
     if (!x.ServiceLine) return false;
     const v = x.ServiceLine.toLowerCase().trim();
-    // "MS" tab: match "ms", "managed services", "managed service", etc.
-    if (s === "ms") return v === "ms" || v.startsWith("managed") || v === "ms";
+    if (s === "ms") return v === "ms" || v.startsWith("managed");
+    if (s === "consulting") return v === "consulting";
+    if (s === "strategy") return v === "strategy" || v.includes("strategy");
     return v.includes(s);
   });
 }
