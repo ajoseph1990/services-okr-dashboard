@@ -1395,33 +1395,34 @@ function dealSection(deals, pipeline, bonus, showPipelineAndBonus = false) {
     </div>`;
   }
   
-  // BONUS - Only in Forecast view
+  // BONUS - Only in Forecast view, summarised by customer
   if (showPipelineAndBonus && bonus && bonus.length) {
     const total = bonus.reduce((s, b) => s + (b["Estimated Bonus ($M)"] || 0), 0);
-    const sortedBonus = [...bonus].sort((a, b) => (b["Estimated Bonus ($M)"] || 0) - (a["Estimated Bonus ($M)"] || 0));
-    const top10 = sortedBonus.slice(0, 10);
-    const others = sortedBonus.slice(10);
-    const othersTotal = others.reduce((s, b) => s + (b["Estimated Bonus ($M)"] || 0), 0);
-    
+
+    // Aggregate by Client: sum bonus, keep highest probability
+    const probRank = p => { const s = String(p||"").toLowerCase(); return s.includes("high") ? 3 : s.includes("med") ? 2 : 1; };
+    const byClient = {};
+    bonus.forEach(b => {
+      const key = (b.Client || "Unknown").trim();
+      if (!byClient[key]) byClient[key] = { Client: key, bonus: 0, prob: b["Probability (H/M/L)"] || "" };
+      byClient[key].bonus += b["Estimated Bonus ($M)"] || 0;
+      if (probRank(b["Probability (H/M/L)"]) > probRank(byClient[key].prob)) byClient[key].prob = b["Probability (H/M/L)"];
+    });
+    const sorted = Object.values(byClient).sort((a, b) => b.bonus - a.bonus);
+
     html += `<div class="deal-section">
       <div class="deal-header"><span class="deal-title">Bonus Opportunities</span><span class="deal-total">${fmtM(total)} Total Potential</span></div>
       <table class="deal-table">
         <thead><tr><th>Client</th><th>Estimated Bonus</th><th>Probability</th></tr></thead>
         <tbody>
-          ${top10.map(b => {
-            const prob = (b["Probability (H/M/L)"] || "").toLowerCase();
-            const cls = prob.includes("high") ? "high" : prob.includes("med") ? "med" : "low";
+          ${sorted.map(b => {
+            const cls = probRank(b.prob) === 3 ? "high" : probRank(b.prob) === 2 ? "med" : "low";
             return `<tr>
               <td class="deal-client">${b.Client}</td>
-              <td class="deal-amt">${fmtM(b["Estimated Bonus ($M)"] || 0)}</td>
-              <td><span class="prob-badge ${cls}">${b["Probability (H/M/L)"]}</span></td>
+              <td class="deal-amt">${fmtM(b.bonus)}</td>
+              <td><span class="prob-badge ${cls}">${b.prob}</span></td>
             </tr>`;
           }).join("")}
-          ${others.length > 0 ? `<tr style="background:#f9fafb;font-style:italic;">
-            <td class="deal-client">Others (${others.length} entries)</td>
-            <td class="deal-amt">${fmtM(othersTotal)}</td>
-            <td>—</td>
-          </tr>` : ''}
         </tbody>
       </table>
     </div>`;
