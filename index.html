@@ -833,19 +833,29 @@ function parseLocalExcel(file) {
   reader.readAsArrayBuffer(file);
 }
 
-// Find the column whose VALUES are service-line labels (MS / Consulting / Strategy / Managed Services).
-// Score every column by how many of its rows contain a known label — pick the highest scorer.
-// This is purely value-based so the column header name doesn't matter at all.
+// Find the column containing service-line labels (MS / Consulting / Strategy / Managed Services).
+// 1. First tries header-name match (e.g. "Service Line", "ServiceLine", "service_line").
+// 2. Falls back to value-based scoring across all columns.
 function detectSLCol(rows) {
   if (!rows || !rows.length) return null;
+  const keys = Object.keys(rows[0]);
+
+  // 1. Header-based: prefer any column whose name looks like "service line"
+  const headerMatch = keys.find(k => {
+    const h = k.toLowerCase().replace(/[\s_\-]+/g, "");
+    return h === "serviceline" || h === "service";
+  });
+  if (headerMatch) return headerMatch;
+
+  // 2. Value-based fallback
   const isSlVal = v => {
     const s = String(v || "").toLowerCase().trim();
     return s === "ms" || s === "consulting" || s === "strategy" ||
            s === "managed services" || s === "managed service" ||
-           s.startsWith("managed");
+           s.startsWith("managed") || s.includes("consult");
   };
   let bestCol = null, bestScore = 0;
-  for (const k of Object.keys(rows[0])) {
+  for (const k of keys) {
     const score = rows.reduce((n, r) => n + (isSlVal(r[k]) ? 1 : 0), 0);
     if (score > bestScore) { bestScore = score; bestCol = k; }
   }
@@ -1133,8 +1143,11 @@ function filterBySL(arr, sl) {
   return arr.filter(x => {
     if (!x.ServiceLine) return false;
     const v = x.ServiceLine.toLowerCase().trim();
+    // "MS" tab: match "ms", "managed services", "managed service", anything starting with "managed"
     if (s === "ms") return v === "ms" || v.startsWith("managed");
-    if (s === "consulting") return v === "consulting";
+    // "Consulting" tab: match "consulting", "consult", or any value containing "consult"
+    if (s === "consulting") return v.includes("consult");
+    // "Strategy" tab
     if (s === "strategy") return v === "strategy" || v.includes("strategy");
     return v.includes(s);
   });
