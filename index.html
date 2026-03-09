@@ -908,7 +908,7 @@ const EMBEDDED_DATA = {
 // ===== GLOBAL STATE =====
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 let activeTab = "overview";
-let viewMode = "MTD";
+let viewMode = "YTD";
 let currentMonth = 1; // Feb
 
 const ANN_TGT = {
@@ -967,6 +967,8 @@ function init() {
   });
   
   document.querySelectorAll(".view-btn").forEach(btn => {
+    if (btn.dataset.view === viewMode) btn.classList.add("active");
+    else btn.classList.remove("active");
     btn.onclick = () => {
       document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
@@ -974,7 +976,13 @@ function init() {
       render();
     };
   });
-  
+
+  // Default to overview tab
+  document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+  const overviewTab = document.querySelector('.nav-tab[data-tab="overview"]');
+  if (overviewTab) overviewTab.classList.add("active");
+  activeTab = "overview";
+
   render();
 }
 
@@ -1065,7 +1073,7 @@ function compute(months) {
   };
 }
 
-function fmtM(v) { return "$" + v.toFixed(1) + "M"; }
+function fmtM(v) { const n = +v.toFixed(2); return "$" + (n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)) + "M"; }
 function fmtK(v) { return "$" + (v * 1000).toFixed(0) + "K"; }
 
 function filterBySL(arr, sl) {
@@ -1093,7 +1101,7 @@ function sparkSVG(color) {
 
 // ===== HERO CARD =====
 function heroCard(opts) {
-  const { label, value, actual, mtdTgt, ytdTgt, annTgt, forecast, unit, mIdx, subs, isAvg, low, isRevOrMargin } = opts;
+  const { label, value, actual, mtdTgt, ytdTgt, annTgt, forecast, unit, mIdx, subs, isAvg, low, isRevOrMargin, noPct } = opts;
   
   let target, pct, displayForecast, forecastLabel;
   
@@ -1119,25 +1127,32 @@ function heroCard(opts) {
   const status = statusText(pct, low);
   
   const gap = displayForecast - annTgt;
-  const gapStr = unit === "$M" ? (gap >= 0 ? "+$" + (gap).toFixed(1) + "M" : "-$" + Math.abs(gap).toFixed(1) + "M") :
+  const gapStr = unit === "$M" ? (gap >= 0 ? "+" + fmtM(gap) : "-" + fmtM(Math.abs(gap))) :
                  unit === "%" ? (gap >= 0 ? "+" + gap.toFixed(1) + "%" : gap.toFixed(1) + "%") :
                  (gap >= 0 ? "+" + gap.toFixed(0) : gap.toFixed(0));
   
   const forecastStr = unit === "$M" ? fmtM(displayForecast) : unit === "%" ? displayForecast.toFixed(0) + "%" : displayForecast.toLocaleString();
   const annTgtStr = unit === "$M" ? fmtM(annTgt) : unit === "%" ? annTgt + "%" : annTgt.toLocaleString();
   
-  // For Forecast view on revenue/margin cards, don't show "% vs Annual target"
+  // Build target line — noPct cards (utilization, renewal) omit "X% vs target"
+  const fmtTgt = t => unit === "$M" ? fmtM(t) : t.toFixed(0) + (unit === "%" ? "%" : "");
   let targetLineStr;
   if (viewMode === "YTD") {
-    targetLineStr = `YTD target: ${unit === "$M" ? fmtM(target) : target.toFixed(0) + (unit === "%" ? "%" : "")} · ${pct.toFixed(0)}% vs YTD target`;
+    targetLineStr = noPct
+      ? `YTD target: ${fmtTgt(target)}`
+      : `YTD target: ${fmtTgt(target)} · ${pct.toFixed(0)}% vs YTD target`;
   } else if (viewMode === "FORECAST") {
     if (isRevOrMargin) {
       targetLineStr = `Forecast: ${forecastStr} vs ${annTgtStr} Annual target`;
     } else {
-      targetLineStr = `Forecast: ${forecastStr} · ${pct.toFixed(0)}% vs Annual target`;
+      targetLineStr = noPct
+        ? `Forecast: ${forecastStr}`
+        : `Forecast: ${forecastStr} · ${pct.toFixed(0)}% vs Annual target`;
     }
   } else {
-    targetLineStr = `MTD target: ${unit === "$M" ? fmtM(target) : target.toFixed(0) + (unit === "%" ? "%" : "")} · ${pct.toFixed(0)}% vs MTD target`;
+    targetLineStr = noPct
+      ? `MTD target: ${fmtTgt(target)}`
+      : `MTD target: ${fmtTgt(target)} · ${pct.toFixed(0)}% vs MTD target`;
   }
   
   let subsHtml = "";
@@ -1165,8 +1180,8 @@ function heroCard(opts) {
     }).join("");
   }
   
-  // For Forecast view on revenue/margin, don't show percentage in status
-  const showPct = !(viewMode === "FORECAST" && isRevOrMargin);
+  // Don't show % badge for noPct cards, or in Forecast mode for rev/margin
+  const showPct = !noPct && !(viewMode === "FORECAST" && isRevOrMargin);
   
   // Only show forecast/run-rate section in Forecast view
   const showForecastSection = viewMode === "FORECAST";
@@ -1212,8 +1227,8 @@ function okrCard(num, title, colorClass, metrics) {
     const pct = m.tgt ? (m.val / m.tgt) * 100 : 0;
     const color = pctColor(pct, m.low);
     const status = statusText(pct, m.low);
-    const valStr = m.unit === "$M" ? fmtK(m.val) : m.unit === "%" ? m.val.toFixed(1) + "%" : m.val.toLocaleString();
-    const tgtStr = m.unit === "$M" ? "/ " + fmtM(m.tgt) : m.unit === "%" ? "/ " + m.tgt + "%" : "/ " + m.tgt;
+    const valStr = m.unit === "$M" ? fmtK(m.val) : m.unit === "%" ? m.val.toFixed(1) + "%" : Number(m.val).toFixed(0);
+    const tgtStr = m.unit === "$M" ? "/ " + fmtM(m.tgt) : m.unit === "%" ? "/ " + Number(m.tgt).toFixed(0) + "%" : "/ " + Number(m.tgt).toFixed(0);
     
     return `<div class="okr-metric">
       <div class="okr-metric-left">
@@ -1439,6 +1454,12 @@ function render() {
           { label: "Voluntary Attrition", val: d.pp.vol, tgt: ANN_TGT.vol, unit: "%", low: true },
           { label: "Regrettable Attrition", val: d.pp.reg, tgt: ANN_TGT.reg, unit: "%", low: true }
         ])}
+        ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
+          { label: "SC Strategy Revenue", val: d.sc.rev, tgt: ANN_TGT.scRev, unit: "$M" },
+          { label: "Weighted Pipeline", val: d.sc.pipe, tgt: ANN_TGT.scPipe, unit: "$M" },
+          { label: "Referenceable Customers", val: d.sc.cust, tgt: ANN_TGT.scCust, unit: "" },
+          { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: ANN_TGT.scThought, unit: "" }
+        ])}
       </div>`;
       html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
       html += dealSection(d.deals, d.pipeline, d.bonus, viewMode === "FORECAST");
@@ -1450,35 +1471,41 @@ function render() {
     html += `<div class="hero-grid" style="grid-template-columns:repeat(${conCols},1fr)">
       ${heroCard({ label: "CONSULTING REVENUE", value: fmtM(d.rev.consulting), actual: d.rev.consulting, mtdTgt: getMTD("Rev Consulting ($M)", mName), ytdTgt: getMTDYTD("Rev Consulting ($M)"), annTgt: ANN_TGT.revConsulting, forecast: d.rev.forecastConsulting, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
       ${heroCard({ label: "CONSULTING MARGIN", value: d.mg.conM.toFixed(0) + "%", actual: d.mg.conM, mtdTgt: getMTD("Consulting Margin %", mName) || 37, ytdTgt: getMTDYTD("Consulting Margin %") || 37, annTgt: ANN_TGT.conM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "CONSULTING UTILIZATION", value: d.mg.conU.toFixed(0) + "%", actual: d.mg.conU, mtdTgt: getMTD("Consulting Util %", mName) || ANN_TGT.conU, ytdTgt: getMTDYTD("Consulting Util %") || ANN_TGT.conU, annTgt: ANN_TGT.conU, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${viewMode !== "FORECAST" ? heroCard({ label: "ACV - NEW LOGOS", value: fmtM(d.acv.newLogo), actual: d.acv.newLogo, mtdTgt: getMTD("ACV New Logos ($M)", mName), ytdTgt: getMTDYTD("ACV New Logos ($M)"), annTgt: ANN_TGT.acvNewLogo, unit: "$M", mIdx: currentMonth }) : ''}
+      ${heroCard({ label: "CONSULTING UTILIZATION", value: d.mg.conU.toFixed(0) + "%", actual: d.mg.conU, mtdTgt: getMTD("Consulting Util %", mName) || ANN_TGT.conU, ytdTgt: getMTDYTD("Consulting Util %") || ANN_TGT.conU, annTgt: ANN_TGT.conU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true })}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "ACV", value: fmtM(d.acv.newLogo), actual: d.acv.newLogo, mtdTgt: getMTD("ACV New Logos ($M)", mName), ytdTgt: getMTDYTD("ACV New Logos ($M)"), annTgt: ANN_TGT.acvNewLogo, unit: "$M", mIdx: currentMonth }) : ''}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
     html += dealSection(filterBySL(d.deals, "Consulting"), filterBySL(d.pipeline, "Consulting"), filterBySL(d.bonus, "Consulting"), viewMode === "FORECAST");
   }
 
   if (activeTab === "ms") {
-    html += `<div class="hero-grid" style="grid-template-columns:repeat(4,1fr)">
+    const msCols = viewMode === "FORECAST" ? 3 : 5;
+    html += `<div class="hero-grid" style="grid-template-columns:repeat(${msCols},1fr)">
       ${heroCard({ label: "MS REVENUE", value: fmtM(d.rev.ms), actual: d.rev.ms, mtdTgt: getMTD("Rev MS ($M)", mName), ytdTgt: getMTDYTD("Rev MS ($M)"), annTgt: ANN_TGT.revMS, forecast: d.rev.forecastMS, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
       ${heroCard({ label: "MS MARGIN", value: d.mg.msM.toFixed(0) + "%", actual: d.mg.msM, mtdTgt: getMTD("MS Margin %", mName) || 23, ytdTgt: getMTDYTD("MS Margin %") || 23, annTgt: ANN_TGT.msM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "MS UTILIZATION", value: d.mg.msU.toFixed(0) + "%", actual: d.mg.msU, mtdTgt: getMTD("MS Util %", mName) || ANN_TGT.msU, ytdTgt: getMTDYTD("MS Util %") || ANN_TGT.msU, annTgt: ANN_TGT.msU, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: getMTD("MS Renewal %", mName) || 60, ytdTgt: getMTDYTD("MS Renewal %") || 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: getMTD("MS Renewal %", mName) || 60, ytdTgt: getMTDYTD("MS Renewal %") || 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true })}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "MS UTILIZATION", value: d.mg.msU.toFixed(0) + "%", actual: d.mg.msU, mtdTgt: getMTD("MS Util %", mName) || ANN_TGT.msU, ytdTgt: getMTDYTD("MS Util %") || ANN_TGT.msU, annTgt: ANN_TGT.msU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "MS ACV", value: fmtM(d.acv.total), actual: d.acv.total, mtdTgt: getMTD("ACV Total ($M)", mName), ytdTgt: getMTDYTD("ACV Total ($M)"), annTgt: ANN_TGT.acvTotal, unit: "$M", mIdx: currentMonth }) : ''}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
     html += dealSection(filterBySL(d.deals, "MS"), filterBySL(d.pipeline, "MS"), filterBySL(d.bonus, "MS"), viewMode === "FORECAST");
   }
-  
+
   if (activeTab === "people") {
+    // People tab does not have a forecast view — clamp to YTD
+    const ppMode = viewMode === "FORECAST" ? "YTD" : viewMode;
+    const ppMonths = ppMode === "MTD" ? [mName] : MONTHS.slice(0, currentMonth + 1);
+    const pp = compute(ppMonths).pp;
     html += `<div class="hero-grid">
-      ${heroCard({ label: "CSAT IMPROVEMENT", value: d.pp.csat.toFixed(1) + "%", actual: d.pp.csat, mtdTgt: 2, annTgt: ANN_TGT.csat, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "ESAT IMPROVEMENT", value: d.pp.esat.toFixed(1) + "%", actual: d.pp.esat, mtdTgt: 1.8, annTgt: ANN_TGT.esat, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "VOLUNTARY ATTRITION", value: d.pp.vol.toFixed(1) + "%", actual: d.pp.vol, mtdTgt: 15, annTgt: ANN_TGT.vol, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "REGRETTABLE ATTRITION", value: d.pp.reg.toFixed(1) + "%", actual: d.pp.reg, mtdTgt: 7, annTgt: ANN_TGT.reg, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "CSAT IMPROVEMENT", value: pp.csat.toFixed(1) + "%", actual: pp.csat, mtdTgt: 2, ytdTgt: getMTDYTD("CSAT %"), annTgt: ANN_TGT.csat, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "ESAT IMPROVEMENT", value: pp.esat.toFixed(1) + "%", actual: pp.esat, mtdTgt: 1.8, ytdTgt: getMTDYTD("ESAT %"), annTgt: ANN_TGT.esat, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "VOLUNTARY ATTRITION", value: pp.vol.toFixed(1) + "%", actual: pp.vol, mtdTgt: 15, ytdTgt: getMTDYTD("Voluntary Attrition %"), annTgt: ANN_TGT.vol, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "REGRETTABLE ATTRITION", value: pp.reg.toFixed(1) + "%", actual: pp.reg, mtdTgt: 7, ytdTgt: getMTDYTD("Regrettable Attrition %"), annTgt: ANN_TGT.reg, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
     </div>`;
     html += `<div class="hero-grid">
-      ${heroCard({ label: "MGR RETENTION", value: d.pp.mgr.toFixed(0) + "%", actual: d.pp.mgr, mtdTgt: 88, annTgt: ANN_TGT.mgr, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "LATERAL HIRE SUCCESS", value: d.pp.lat.toFixed(0) + "%", actual: d.pp.lat, mtdTgt: 48, annTgt: ANN_TGT.lat, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "DIVERSITY SCORE", value: d.pp.div.toFixed(0) + "%", actual: d.pp.div, mtdTgt: 60, annTgt: ANN_TGT.div, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "MGR RETENTION", value: pp.mgr.toFixed(0) + "%", actual: pp.mgr, mtdTgt: 88, ytdTgt: getMTDYTD("Mgr Retention %"), annTgt: ANN_TGT.mgr, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "LATERAL HIRE SUCCESS", value: pp.lat.toFixed(0) + "%", actual: pp.lat, mtdTgt: 48, ytdTgt: getMTDYTD("Lateral Hire Success %"), annTgt: ANN_TGT.lat, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "DIVERSITY SCORE", value: pp.div.toFixed(0) + "%", actual: pp.div, mtdTgt: 60, ytdTgt: getMTDYTD("Diversity Score %"), annTgt: ANN_TGT.div, unit: "%", isAvg: true, mIdx: currentMonth })}
     </div>`;
   }
   
