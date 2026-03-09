@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Services Business OKRs - FY2025</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text2: #6b7280;
+  --muted: #9ca3af;
+  --green: #10b981;
+  --green-bg: #d1fae5;
+  --red: #ef4444;
+  --red-bg: #fee2e2;
+  --amber: #f59e0b;
+  --amber-bg: #fef3c7;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  color: var(--text);
+}
+
+.header {
+  background: var(--card);
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-left h1 { font-size: 22px; font-weight: 800; color: var(--text); }
+.header-left p { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+.month-select {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--card);
+  cursor: pointer;
+}
+
+.view-toggle { display: flex; background: #f3f4f6; border-radius: 8px; padding: 4px; }
+
+.view-btn {
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-btn.active { background: #065f46; color: white; }
+.view-btn:hover:not(.active) { background: #e5e7eb; }
+
+.nav {
+  background: var(--card);
+  padding: 0 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.nav-tab {
+  padding: 16px 20px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.nav-tab:hover { color: var(--text); background: #f9fafb; }
+.nav-tab.active { color: #065f46; border-bottom-color: #065f46; background: #f0fdf4; }
+.nav-tab svg { width: 18px; height: 18px; }
+
+.view-label {
+  background: var(--card);
+  padding: 12px 32px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text2);
+  text-align: right;
+}
+
+.main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1400px) { .hero-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .hero-grid { grid-template-columns: 1fr; } }
+
+.hero-card {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.hero-top { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
+
+.hero-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+
+.hero-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+}
+
+.hero-spark { width: 60px; height: 24px; }
+
+.hero-value { font-size: 32px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+
+.hero-target-line { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+
+.hero-status { display: flex; align-items: center; justify-content: space-between; }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-badge.green { background: var(--green-bg); color: #065f46; }
+.status-badge.red { background: var(--red-bg); color: #991b1b; }
+.status-badge.amber { background: var(--amber-bg); color: #92400e; }
+.status-badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+.hero-pct { font-size: 13px; font-weight: 600; color: var(--text2); }
+
+.hero-forecast { padding: 16px 20px; background: #fafafa; border-bottom: 1px solid var(--border); }
+
+.forecast-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
+
+.forecast-item { text-align: left; }
+.forecast-item:last-child { text-align: right; }
+
+.forecast-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.forecast-value { font-size: 16px; font-weight: 700; color: var(--text); }
+.forecast-value.behind { color: var(--red); }
+.forecast-value.on-track { color: var(--green); }
+.forecast-sub { font-size: 10px; color: var(--text2); }
+
+.gap-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.gap-label { font-size: 11px; font-weight: 600; color: var(--text2); }
+.gap-value { font-size: 14px; font-weight: 700; color: var(--red); }
+.gap-value.positive { color: var(--green); }
+
+.hero-subs { padding: 16px 20px; }
+
+.sub-metric { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sub-metric:last-child { margin-bottom: 0; }
+
+.sub-left { flex: 1; margin-right: 16px; }
+.sub-label { font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+
+.sub-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+.sub-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.sub-fill.green { background: var(--green); }
+.sub-fill.amber { background: var(--amber); }
+.sub-fill.red { background: var(--red); }
+
+.sub-value { font-size: 14px; font-weight: 700; color: var(--text); min-width: 70px; text-align: right; }
+
+.section-divider { display: flex; align-items: center; justify-content: center; margin: 40px 0 28px; }
+
+.divider-text {
+  padding: 10px 24px;
+  background: #e5e7eb;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.okr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px; }
+@media (max-width: 1200px) { .okr-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .okr-grid { grid-template-columns: 1fr; } }
+
+.okr-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+
+.okr-header { padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+.okr-header.blue { background: #1e3a5f; }
+.okr-header.teal { background: #0d9488; }
+.okr-header.green { background: #065f46; }
+.okr-header.orange { background: #9a3412; }
+
+.okr-num { background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; color: white; }
+.okr-title { font-size: 14px; font-weight: 600; color: white; }
+
+.okr-metrics { padding: 16px 20px; }
+
+.okr-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.okr-metric:last-child { border-bottom: none; }
+
+.okr-metric-left { flex: 1; }
+.okr-metric-label { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+.okr-metric-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; max-width: 200px; }
+.okr-metric-fill { height: 100%; border-radius: 3px; }
+
+.okr-metric-right { text-align: right; margin-left: 16px; }
+.okr-metric-value { font-size: 16px; font-weight: 700; color: var(--text); }
+.okr-metric-target { font-size: 11px; color: var(--muted); }
+
+.okr-metric-status {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+  display: inline-block;
+}
+.okr-metric-status.green { background: var(--green-bg); color: #065f46; }
+.okr-metric-status.amber { background: var(--amber-bg); color: #92400e; }
+.okr-metric-status.red { background: var(--red-bg); color: #991b1b; }
+
+.deal-section { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 20px; }
+
+.deal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.deal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.deal-total { font-size: 14px; font-weight: 700; color: var(--green); }
+
+.deal-table { width: 100%; border-collapse: collapse; }
+.deal-table th {
+  text-align: left;
+  padding: 12px 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--border);
+}
+.deal-table td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid var(--border); }
+.deal-table tr:last-child td { border-bottom: none; }
+.deal-table tr:hover td { background: #f9fafb; }
+
+.deal-client { font-weight: 600; color: var(--text); }
+.deal-scope { color: var(--text2); max-width: 280px; }
+.deal-amt { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+.prob-badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.prob-badge.high { background: var(--green-bg); color: #065f46; }
+.prob-badge.med { background: var(--amber-bg); color: #92400e; }
+.prob-badge.low { background: var(--red-bg); color: #991b1b; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <h1>Services Business OKRs</h1>
+    <p>FY2025 Performance Dashboard · Strategy | Consulting | Managed Services</p>
+  </div>
+  <div class="header-right">
+    <select class="month-select" id="monthSel"></select>
+    <div class="view-toggle">
+      <button class="view-btn active" data-view="MTD">MTD</button>
+      <button class="view-btn" data-view="YTD">YTD</button>
+      <button class="view-btn" data-view="FORECAST">Forecast</button>
+    </div>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="nav-tab" data-tab="execsum">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    Exec Summary
+  </button>
+  <button class="nav-tab active" data-tab="overview">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+    Overview
+  </button>
+  <button class="nav-tab" data-tab="consulting">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+    Consulting
+  </button>
+  <button class="nav-tab" data-tab="ms">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    Managed Services
+  </button>
+  <button class="nav-tab" data-tab="people">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    People & Culture
+  </button>
+  <button class="nav-tab" data-tab="sc">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+    SC Strategy
+  </button>
+</nav>
+
+<div class="view-label" id="viewLabel">Feb 2025 · MTD</div>
+
+<main class="main" id="main"></main>
+
+<script>
+// ===== EMBEDDED DATA WITH YTD FROM COLUMN O =====
+const EMBEDDED_DATA = {
+  metrics: [
+    {"Metric": "Rev Total ($M)", "Annual Target": 345, "Jan": 25.0, "Feb": 25.4, "YTD": 50.4},
+    {"Metric": "MTD Target - Rev Total ($M)", "Jan": 24.3, "Feb": 25.7, "YTD": 50},
+    {"Metric": "Rev Strategy ($M)", "Annual Target": 10, "Jan": 0.151, "Feb": 0.153, "YTD": 0.304},
+    {"Metric": "MTD Target - Rev Strategy ($M)", "Jan": 0.833, "Feb": 0.833, "YTD": 1.666},
+    {"Metric": "Rev Consulting ($M)", "Annual Target": 100, "Jan": 5.16, "Feb": 5.67, "YTD": 10.83},
+    {"Metric": "MTD Target - Rev Consulting ($M)", "Jan": 6.7, "Feb": 8.0, "YTD": 14.7},
+    {"Metric": "Rev MS ($M)", "Annual Target": 235, "Jan": 19.7, "Feb": 19.53, "YTD": 39.23},
+    {"Metric": "MTD Target - Rev MS ($M)", "Jan": 16.8, "Feb": 16.8, "YTD": 33.6},
+    {"Metric": "Consulting New Offerings %", "Annual Target": 30, "Jan": 22.0, "Feb": 25.0, "YTD": 24},
+    {"Metric": "ACV Total ($M)", "Annual Target": 175, "Jan": 13.6, "Feb": 7.5, "YTD": 21.1},
+    {"Metric": "MTD Target - ACV Total ($M)", "Jan": 12.9, "Feb": 12.9, "YTD": 25.8},
+    {"Metric": "ACV New Logos ($M)", "Annual Target": 65, "Jan": 10.5, "Feb": 4.1, "YTD": 14.6},
+    {"Metric": "MTD Target - ACV New Logos ($M)", "Jan": 5.6, "Feb": 5.6, "YTD": 11.2},
+    {"Metric": "ACV Upsell ($M)", "Annual Target": 110, "Jan": 3.1, "Feb": 3.4, "YTD": 6.5},
+    {"Metric": "MTD Target - ACV Upsell ($M)", "Jan": 7.2, "Feb": 7.2, "YTD": 14.4},
+    {"Metric": "Pipeline Carry %", "Annual Target": 15, "Jan": 0, "Feb": 0, "YTD": 0},
+    {"Metric": "Margin Overall %", "Annual Target": 30, "Jan": 20.9, "Feb": 0, "YTD": 20.9},
+    {"Metric": "MTD Target - Margin %", "Jan": 30.0, "Feb": 30.0, "YTD": 30},
+    {"Metric": "Utilization %", "Annual Target": 84, "Jan": 83.0, "Feb": 0, "YTD": 83},
+    {"Metric": "MTD Target - Utilization %", "Jan": 84.0, "Feb": 84.0, "YTD": 84},
+    {"Metric": "Consulting Margin %", "Annual Target": 42, "Jan": 26.0, "Feb": 0, "YTD": 26},
+    {"Metric": "Consulting Util %", "Annual Target": 82, "Jan": 78.0, "Feb": 0, "YTD": 78},
+    {"Metric": "MS Margin %", "Annual Target": 27, "Jan": 20.0, "Feb": 0, "YTD": 20},
+    {"Metric": "MS Util %", "Annual Target": 88, "Jan": 90.0, "Feb": 0, "YTD": 90},
+    {"Metric": "MS Renewal %", "Annual Target": 75, "Jan": 48.0, "Feb": 65.0, "YTD": 65},
+    {"Metric": "Agents Created", "Annual Target": 5000, "Jan": 310, "Feb": 680, "YTD": 990},
+    {"Metric": "MTD Target - Agents Created", "Jan": 350, "Feb": 400, "YTD": 750},
+    {"Metric": "Agentic ARR ($M)", "Annual Target": 10, "Jan": 0.4, "Feb": 0.4, "YTD": 0.8},
+    {"Metric": "MTD Target - Agentic ARR ($M)", "Jan": 0.83, "Feb": 0.83, "YTD": 1.66},
+    {"Metric": "AI Efficiency %", "Annual Target": 20, "Jan": 9.0, "Feb": 11.0, "YTD": 10},
+    {"Metric": "CSAT %", "Annual Target": 5, "Jan": 2.0, "Feb": 2.5, "YTD": 2.25},
+    {"Metric": "ESAT %", "Annual Target": 5, "Jan": 1.8, "Feb": 2.1, "YTD": 1.95},
+    {"Metric": "Voluntary Attrition %", "Annual Target": 15, "Jan": 16.0, "Feb": 15.5, "YTD": 15.75},
+    {"Metric": "Regrettable Attrition %", "Annual Target": 7, "Jan": 7.5, "Feb": 7.2, "YTD": 7.35},
+    {"Metric": "Mgr Retention %", "Annual Target": 90, "Jan": 87.0, "Feb": 88.0, "YTD": 87.5},
+    {"Metric": "Lateral Hire Success %", "Annual Target": 50, "Jan": 48.0, "Feb": 50.0, "YTD": 49},
+    {"Metric": "Diversity Score %", "Annual Target": 80, "Jan": 62.0, "Feb": 63.0, "YTD": 62.5},
+    {"Metric": "SC Revenue ($M)", "Annual Target": 10, "Jan": 0.6, "Feb": 1.2, "YTD": 1.8},
+    {"Metric": "SC Pipeline ($M)", "Annual Target": 15, "Jan": 0.8, "Feb": 1.5, "YTD": 2.3},
+    {"Metric": "SC Customers", "Annual Target": 5, "Jan": 0, "Feb": 0, "YTD": 0},
+    {"Metric": "SC Thought Leadership", "Annual Target": 5, "Jan": 1.0, "Feb": 2.0, "YTD": 3}
+  ],
+  // FORECASTS from Excel (Updated by user)
+  forecasts: {
+    "Rev Total ($M)": 318,
+    "Rev Strategy ($M)": 0,
+    "Rev Consulting ($M)": 90,
+    "Rev MS ($M)": 228
+  },
+  deals: [
+    {"Month": "Jan", "Client": "NIKE Inc", "Type": "New", "Scope": "NIKE - Steady State Fees", "ACV ($M)": 3.246},
+    {"Month": "Jan", "Client": "Genuine Parts Company", "Type": "New", "Scope": "NAPA Auto Parts - Accelerated Cost Takeout", "ACV ($M)": 5.0},
+    {"Month": "Jan", "Client": "Philips Electronics", "Type": "Existing", "Scope": "Philips - S2C Operating Charges", "ACV ($M)": 1.78},
+    {"Month": "Jan", "Client": "Signet Jewelers", "Type": "Existing", "Scope": "Signet Jewelers - Accelerated Sourcing", "ACV ($M)": 0.75},
+    {"Month": "Jan", "Client": "NIKE Inc", "Type": "New", "Scope": "NIKE - NA/EMEA SWAT Team", "ACV ($M)": 0.558},
+    {"Month": "Feb", "Client": "Logitech Europe", "Type": "New", "Scope": "Logitech - Steady State Fees", "ACV ($M)": 1.71},
+    {"Month": "Feb", "Client": "Unilever", "Type": "Existing", "Scope": "Unilever - JEDI", "ACV ($M)": 1.10},
+    {"Month": "Feb", "Client": "Oliver Wyman", "Type": "New", "Scope": "Oliver Wyman - MRO Cost Takeout Program", "ACV ($M)": 0.845},
+    {"Month": "Feb", "Client": "GE Healthcare", "Type": "New", "Scope": "GE - Procure to Settle Steady State", "ACV ($M)": 0.682},
+    {"Month": "Feb", "Client": "Eaton Industries", "Type": "New", "Scope": "Eaton - Direct Material Tail Spend", "ACV ($M)": 0.653}
+  ],
+  pipeline: [
+    {"Client": "Nexans", "Scope": "Nexans S2P 2026", "ACV ($M)": 5.8, "Weighted ACV ($M)": 2.9, "Probability (H/M/L)": "Med"},
+    {"Client": "Nestle SA", "Scope": "Nestle SA Tail Spend", "ACV ($M)": 5.0, "Weighted ACV ($M)": 2.5, "Probability (H/M/L)": "Med"},
+    {"Client": "Monogram Foods", "Scope": "Monogram Foods Procurement - Extension", "ACV ($M)": 3.3, "Weighted ACV ($M)": 1.65, "Probability (H/M/L)": "Med"},
+    {"Client": "APi Group", "Scope": "API Group Strategic Value Capture", "ACV ($M)": 2.07, "Weighted ACV ($M)": 1.87, "Probability (H/M/L)": "High"},
+    {"Client": "Google Inc.", "Scope": "Google Consulting Data Center", "ACV ($M)": 3.0, "Weighted ACV ($M)": 0.9, "Probability (H/M/L)": "Low"},
+    {"Client": "PG&E Corporation", "Scope": "PG&E - Cost Take Out 2026", "ACV ($M)": 1.6, "Weighted ACV ($M)": 1.12, "Probability (H/M/L)": "High"},
+    {"Client": "Unilever", "Scope": "Unilever H&W COGS Value Acceleration", "ACV ($M)": 1.5, "Weighted ACV ($M)": 1.35, "Probability (H/M/L)": "High"},
+    {"Client": "Open AI", "Scope": "MNG SVC - POps, AP, T&E", "ACV ($M)": 1.0, "Weighted ACV ($M)": 0.15, "Probability (H/M/L)": "Low"}
+  ],
+  bonus: [
+    {"Client": "Mercedes-Benz AG", "Estimated Bonus ($M)": 3.0, "Probability (H/M/L)": "Low"},
+    {"Client": "WestRock Company", "Estimated Bonus ($M)": 2.4, "Probability (H/M/L)": "Low"},
+    {"Client": "NEOM", "Estimated Bonus ($M)": 1.65, "Probability (H/M/L)": "Low"},
+    {"Client": "Koninklijke Philips N.V.", "Estimated Bonus ($M)": 1.55, "Probability (H/M/L)": "Low"},
+    {"Client": "Unilever PLC", "Estimated Bonus ($M)": 1.0, "Probability (H/M/L)": "Low"},
+    {"Client": "Safe Harbor Marinas LLC", "Estimated Bonus ($M)": 0.85, "Probability (H/M/L)": "Low"},
+    {"Client": "Cargill Inc.", "Estimated Bonus ($M)": 0.833, "Probability (H/M/L)": "High"},
+    {"Client": "US Foods, Inc.", "Estimated Bonus ($M)": 0.8, "Probability (H/M/L)": "Low"},
+    {"Client": "Signet Jewelers", "Estimated Bonus ($M)": 0.75, "Probability (H/M/L)": "Med"},
+    {"Client": "The Walt Disney Company", "Estimated Bonus ($M)": 0.5, "Probability (H/M/L)": "Low"},
+    {"Client": "Phillip Morris", "Estimated Bonus ($M)": 0.31, "Probability (H/M/L)": "High"},
+    {"Client": "L'Oreal USA, Inc.", "Estimated Bonus ($M)": 0.292, "Probability (H/M/L)": "High"},
+    {"Client": "Monogram Food Solutions LLC", "Estimated Bonus ($M)": 0.18, "Probability (H/M/L)": "High"},
+    {"Client": "VivaAerobus Mexico", "Estimated Bonus ($M)": 0.169, "Probability (H/M/L)": "Med"},
+    {"Client": "Unilever", "Estimated Bonus ($M)": 0.13, "Probability (H/M/L)": "High"}
+  ]
+};
+
+// ===== GLOBAL STATE =====
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+let activeTab = "overview";
+let viewMode = "MTD";
+let currentMonth = 1; // Feb
+
+const ANN_TGT = {
+  revTotal: 345, revStrategy: 10, revConsulting: 100, revMS: 235, consultingNew: 30,
+  acvTotal: 175, acvNewLogo: 65, acvUpsell: 110, pipelineCarry: 15,
+  marginOverall: 30, util: 84, conM: 42, conU: 82, msM: 27, msU: 88, msRenewal: 75,
+  agents: 5000, arr: 10, aiEff: 20,
+  csat: 5, esat: 5, vol: 15, reg: 7, mgr: 90, lat: 50, div: 80,
+  scRev: 10, scPipe: 15, scCust: 5, scThought: 5
+};
+
+let DATA = null;
+
+// ===== INIT =====
+function init() {
+  DATA = { 
+    metrics: {}, 
+    mtdTargets: {}, 
+    ytdValues: {},
+    forecasts: EMBEDDED_DATA.forecasts || {},
+    deals: EMBEDDED_DATA.deals, 
+    pipeline: EMBEDDED_DATA.pipeline,
+    bonus: EMBEDDED_DATA.bonus || []
+  };
+  
+  EMBEDDED_DATA.metrics.forEach(row => {
+    const metric = row.Metric;
+    if (metric.startsWith("MTD Target -")) {
+      const baseName = metric.replace("MTD Target - ", "").trim();
+      DATA.mtdTargets[baseName] = {};
+      MONTHS.forEach(m => { if (row[m] !== undefined) DATA.mtdTargets[baseName][m] = row[m]; });
+      DATA.mtdTargets[baseName].YTD = row.YTD || 0;
+    } else {
+      DATA.metrics[metric] = { values: {}, target: row["Annual Target"], ytd: row.YTD || 0 };
+      MONTHS.forEach(m => { DATA.metrics[metric].values[m] = row[m] || 0; });
+    }
+  });
+  
+  const monthSel = document.getElementById("monthSel");
+  MONTHS.forEach((m, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = m;
+    monthSel.appendChild(opt);
+  });
+  monthSel.value = currentMonth;
+  monthSel.onchange = () => { currentMonth = +monthSel.value; render(); };
+  
+  document.querySelectorAll(".nav-tab").forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      activeTab = tab.dataset.tab;
+      render();
+    };
+  });
+  
+  document.querySelectorAll(".view-btn").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      viewMode = btn.dataset.view;
+      render();
+    };
+  });
+  
+  render();
+}
+
+// ===== HELPERS =====
+function getVal(name, months) {
+  if (!DATA?.metrics[name]) return 0;
+  return months.reduce((s, m) => s + (DATA.metrics[name].values[m] || 0), 0);
+}
+
+function getYTD(name) {
+  if (!DATA?.metrics[name]) return 0;
+  return DATA.metrics[name].ytd || 0;
+}
+
+function getForecast(name) {
+  return DATA?.forecasts[name] || 0;
+}
+
+function getAvg(name, months) {
+  if (!DATA?.metrics[name]) return 0;
+  const vals = months.map(m => DATA.metrics[name].values[m] || 0).filter(v => v > 0);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+}
+
+function getMTD(name, month) { return DATA?.mtdTargets[name]?.[month] || null; }
+function getMTDYTD(name) { return DATA?.mtdTargets[name]?.YTD || null; }
+
+function getMonths() {
+  if (viewMode === "MTD") return [MONTHS[currentMonth]];
+  return MONTHS.slice(0, currentMonth + 1);
+}
+
+function compute(months) {
+  const useYTD = viewMode === "YTD";
+  const useForecast = viewMode === "FORECAST";
+  
+  return {
+    rev: {
+      total: useYTD ? getYTD("Rev Total ($M)") : getVal("Rev Total ($M)", months),
+      strategy: useYTD ? getYTD("Rev Strategy ($M)") : getVal("Rev Strategy ($M)", months),
+      consulting: useYTD ? getYTD("Rev Consulting ($M)") : getVal("Rev Consulting ($M)", months),
+      ms: useYTD ? getYTD("Rev MS ($M)") : getVal("Rev MS ($M)", months),
+      consultingNew: useYTD ? getYTD("Consulting New Offerings %") : (viewMode === "MTD" ? getVal("Consulting New Offerings %", months) : getAvg("Consulting New Offerings %", months)),
+      // Forecasts
+      forecastTotal: getForecast("Rev Total ($M)"),
+      forecastStrategy: getForecast("Rev Strategy ($M)"),
+      forecastConsulting: getForecast("Rev Consulting ($M)"),
+      forecastMS: getForecast("Rev MS ($M)")
+    },
+    acv: {
+      total: useYTD ? getYTD("ACV Total ($M)") : getVal("ACV Total ($M)", months),
+      newLogo: useYTD ? getYTD("ACV New Logos ($M)") : getVal("ACV New Logos ($M)", months),
+      upsell: useYTD ? getYTD("ACV Upsell ($M)") : getVal("ACV Upsell ($M)", months),
+      pipelineCarry: useYTD ? getYTD("Pipeline Carry %") : (viewMode === "MTD" ? getVal("Pipeline Carry %", months) : getAvg("Pipeline Carry %", months))
+    },
+    mg: {
+      overall: useYTD ? getYTD("Margin Overall %") : (viewMode === "MTD" ? getVal("Margin Overall %", months) : getAvg("Margin Overall %", months)),
+      util: useYTD ? getYTD("Utilization %") : (viewMode === "MTD" ? getVal("Utilization %", months) : getAvg("Utilization %", months)),
+      conM: useYTD ? getYTD("Consulting Margin %") : (viewMode === "MTD" ? getVal("Consulting Margin %", months) : getAvg("Consulting Margin %", months)),
+      conU: useYTD ? getYTD("Consulting Util %") : (viewMode === "MTD" ? getVal("Consulting Util %", months) : getAvg("Consulting Util %", months)),
+      msM: useYTD ? getYTD("MS Margin %") : (viewMode === "MTD" ? getVal("MS Margin %", months) : getAvg("MS Margin %", months)),
+      msU: useYTD ? getYTD("MS Util %") : (viewMode === "MTD" ? getVal("MS Util %", months) : getAvg("MS Util %", months))
+    },
+    ag: {
+      created: useYTD ? getYTD("Agents Created") : getVal("Agents Created", months),
+      arr: useYTD ? getYTD("Agentic ARR ($M)") : getVal("Agentic ARR ($M)", months),
+      eff: useYTD ? getYTD("AI Efficiency %") : (viewMode === "MTD" ? getVal("AI Efficiency %", months) : getAvg("AI Efficiency %", months))
+    },
+    pp: {
+      csat: useYTD ? getYTD("CSAT %") : (viewMode === "MTD" ? getVal("CSAT %", months) : getAvg("CSAT %", months)),
+      esat: useYTD ? getYTD("ESAT %") : (viewMode === "MTD" ? getVal("ESAT %", months) : getAvg("ESAT %", months)),
+      vol: useYTD ? getYTD("Voluntary Attrition %") : (viewMode === "MTD" ? getVal("Voluntary Attrition %", months) : getAvg("Voluntary Attrition %", months)),
+      reg: useYTD ? getYTD("Regrettable Attrition %") : (viewMode === "MTD" ? getVal("Regrettable Attrition %", months) : getAvg("Regrettable Attrition %", months)),
+      mgr: useYTD ? getYTD("Mgr Retention %") : (viewMode === "MTD" ? getVal("Mgr Retention %", months) : getAvg("Mgr Retention %", months)),
+      lat: useYTD ? getYTD("Lateral Hire Success %") : (viewMode === "MTD" ? getVal("Lateral Hire Success %", months) : getAvg("Lateral Hire Success %", months)),
+      div: useYTD ? getYTD("Diversity Score %") : (viewMode === "MTD" ? getVal("Diversity Score %", months) : getAvg("Diversity Score %", months))
+    },
+    sc: {
+      rev: useYTD ? getYTD("SC Revenue ($M)") : getVal("SC Revenue ($M)", months),
+      pipe: useYTD ? getYTD("SC Pipeline ($M)") : getVal("SC Pipeline ($M)", months),
+      cust: useYTD ? getYTD("SC Customers") : getVal("SC Customers", months),
+      thought: useYTD ? getYTD("SC Thought Leadership") : getVal("SC Thought Leadership", months)
+    },
+    msRenewal: useYTD ? getYTD("MS Renewal %") : (viewMode === "MTD" ? getVal("MS Renewal %", months) : getAvg("MS Renewal %", months)),
+    deals: DATA.deals.filter(d => months.includes(d.Month)),
+    pipeline: DATA.pipeline,
+    bonus: DATA.bonus
+  };
+}
+
+function fmtM(v) { return "$" + v.toFixed(1) + "M"; }
+function fmtK(v) { return "$" + (v * 1000).toFixed(0) + "K"; }
+
+function pctColor(pct, low = false) {
+  if (low) return pct <= 100 ? "green" : pct <= 120 ? "amber" : "red";
+  return pct >= 95 ? "green" : pct >= 80 ? "amber" : "red";
+}
+
+function statusText(pct, low = false) {
+  if (low) return pct <= 100 ? "ON TRACK" : pct <= 120 ? "AT RISK" : "BEHIND";
+  return pct >= 95 ? "ON TRACK" : pct >= 80 ? "AT RISK" : "BEHIND";
+}
+
+function sparkSVG(color) {
+  const colors = { green: "#10b981", red: "#ef4444", amber: "#f59e0b" };
+  const c = colors[color] || colors.green;
+  return `<svg class="hero-spark" viewBox="0 0 60 24"><path d="M0 20 L10 18 L20 15 L30 12 L40 8 L50 5 L60 2" fill="none" stroke="${c}" stroke-width="2"/></svg>`;
+}
+
+// ===== HERO CARD =====
+function heroCard(opts) {
+  const { label, value, actual, mtdTgt, ytdTgt, annTgt, forecast, unit, mIdx, subs, isAvg, low, isRevOrMargin } = opts;
+  
+  let target, pct, displayForecast, forecastLabel;
+  
+  if (viewMode === "MTD") {
+    target = mtdTgt || (isAvg ? annTgt : annTgt / 12);
+    pct = target ? (actual / target) * 100 : 0;
+    displayForecast = forecast || (isAvg ? actual : (mIdx > 0 ? actual / (mIdx + 1) * 12 : actual * 12));
+    forecastLabel = "Run-rate";
+  } else if (viewMode === "YTD") {
+    target = ytdTgt || (isAvg ? annTgt : annTgt * (mIdx + 1) / 12);
+    pct = target ? (actual / target) * 100 : 0;
+    displayForecast = forecast || (isAvg ? actual : (mIdx > 0 ? actual / (mIdx + 1) * 12 : actual * 12));
+    forecastLabel = "Run-rate";
+  } else {
+    // FORECAST view - use the forecast value directly
+    displayForecast = forecast || (isAvg ? actual : (mIdx > 0 ? actual / (mIdx + 1) * 12 : actual * 12));
+    target = annTgt;
+    pct = target ? (displayForecast / target) * 100 : 0;
+    forecastLabel = "Forecast";
+  }
+  
+  const color = pctColor(pct, low);
+  const status = statusText(pct, low);
+  
+  const gap = displayForecast - annTgt;
+  const gapStr = unit === "$M" ? (gap >= 0 ? "+$" + (gap).toFixed(1) + "M" : "-$" + Math.abs(gap).toFixed(1) + "M") :
+                 unit === "%" ? (gap >= 0 ? "+" + gap.toFixed(1) + "%" : gap.toFixed(1) + "%") :
+                 (gap >= 0 ? "+" + gap.toFixed(0) : gap.toFixed(0));
+  
+  const forecastStr = unit === "$M" ? fmtM(displayForecast) : unit === "%" ? displayForecast.toFixed(0) + "%" : displayForecast.toLocaleString();
+  const annTgtStr = unit === "$M" ? fmtM(annTgt) : unit === "%" ? annTgt + "%" : annTgt.toLocaleString();
+  
+  // For Forecast view on revenue/margin cards, don't show "% vs Annual target"
+  let targetLineStr;
+  if (viewMode === "YTD") {
+    targetLineStr = `YTD target: ${unit === "$M" ? fmtM(target) : target.toFixed(0) + (unit === "%" ? "%" : "")} · ${pct.toFixed(0)}% vs YTD target`;
+  } else if (viewMode === "FORECAST") {
+    if (isRevOrMargin) {
+      targetLineStr = `Forecast: ${forecastStr} vs ${annTgtStr} Annual target`;
+    } else {
+      targetLineStr = `Forecast: ${forecastStr} · ${pct.toFixed(0)}% vs Annual target`;
+    }
+  } else {
+    targetLineStr = `MTD target: ${unit === "$M" ? fmtM(target) : target.toFixed(0) + (unit === "%" ? "%" : "")} · ${pct.toFixed(0)}% vs MTD target`;
+  }
+  
+  let subsHtml = "";
+  if (subs && subs.length) {
+    subsHtml = subs.map(s => {
+      const sPct = s.t ? Math.min((s.v / s.t) * 100, 100) : 0;
+      const sColor = pctColor(s.t ? (s.v / s.t) * 100 : 0, s.low);
+      return `<div class="sub-metric">
+        <div class="sub-left">
+          <div class="sub-label">${s.label}</div>
+          <div class="sub-bar"><div class="sub-fill ${sColor}" style="width:${sPct}%"></div></div>
+        </div>
+        <div class="sub-value">${s.value}</div>
+      </div>`;
+    }).join("");
+  }
+  
+  // For Forecast view on revenue/margin, don't show percentage in status
+  const showPct = !(viewMode === "FORECAST" && isRevOrMargin);
+  
+  // Only show forecast/run-rate section in Forecast view
+  const showForecastSection = viewMode === "FORECAST";
+  
+  return `<div class="hero-card">
+    <div class="hero-top">
+      <div class="hero-header">
+        <div class="hero-label">${label}</div>
+        ${sparkSVG(color)}
+      </div>
+      <div class="hero-value">${value}</div>
+      <div class="hero-target-line">${targetLineStr}</div>
+      <div class="hero-status">
+        <span class="status-badge ${color}">${status}</span>
+        ${showPct ? `<span class="hero-pct">${pct.toFixed(0)}%</span>` : ''}
+      </div>
+    </div>
+    ${showForecastSection ? `<div class="hero-forecast">
+      <div class="forecast-row">
+        <div class="forecast-item">
+          <div class="forecast-label">${forecastLabel}</div>
+          <div class="forecast-value">${forecastStr}</div>
+          <div class="forecast-sub">${forecastLabel === "Forecast" ? "Updated" : "Projected"}</div>
+        </div>
+        <div class="forecast-item">
+          <div class="forecast-label">Annual Tgt</div>
+          <div class="forecast-value ${gap < 0 ? 'behind' : 'on-track'}">${annTgtStr}</div>
+          <div class="forecast-sub">${gap < 0 ? 'BEHIND' : 'ON TRACK'}</div>
+        </div>
+      </div>
+      <div class="gap-row">
+        <span class="gap-label">GAP</span>
+        <span class="gap-value ${gap >= 0 ? 'positive' : ''}">${gapStr}</span>
+      </div>
+    </div>` : ''}
+    ${subsHtml ? `<div class="hero-subs">${subsHtml}</div>` : ''}
+  </div>`;
+}
+
+// ===== OKR CARD =====
+function okrCard(num, title, colorClass, metrics) {
+  const metricsHtml = metrics.map(m => {
+    const pct = m.tgt ? (m.val / m.tgt) * 100 : 0;
+    const color = pctColor(pct, m.low);
+    const status = statusText(pct, m.low);
+    const valStr = m.unit === "$M" ? fmtK(m.val) : m.unit === "%" ? m.val.toFixed(1) + "%" : m.val.toLocaleString();
+    const tgtStr = m.unit === "$M" ? "/ " + fmtM(m.tgt) : m.unit === "%" ? "/ " + m.tgt + "%" : "/ " + m.tgt;
+    
+    return `<div class="okr-metric">
+      <div class="okr-metric-left">
+        <div class="okr-metric-label">${m.label}</div>
+        <div class="okr-metric-bar"><div class="okr-metric-fill" style="width:${Math.min(pct,100)}%;background:var(--${color})"></div></div>
+      </div>
+      <div class="okr-metric-right">
+        <div class="okr-metric-value">${valStr} <span class="okr-metric-target">${tgtStr}</span></div>
+        <div class="okr-metric-status ${color}">${status}</div>
+      </div>
+    </div>`;
+  }).join("");
+  
+  return `<div class="okr-card">
+    <div class="okr-header ${colorClass}">
+      <span class="okr-num">${num}</span>
+      <span class="okr-title">${title}</span>
+    </div>
+    <div class="okr-metrics">${metricsHtml}</div>
+  </div>`;
+}
+
+// ===== DEAL SECTION WITH TOP 10 + OTHERS =====
+function dealSection(deals, pipeline, bonus, showPipelineAndBonus = false) {
+  let html = "";
+  
+  // CLOSED DEALS - Always show
+  if (deals.length) {
+    const total = deals.reduce((s, d) => s + (d["ACV ($M)"] || 0), 0);
+    const sortedDeals = [...deals].sort((a, b) => (b["ACV ($M)"] || 0) - (a["ACV ($M)"] || 0));
+    const top10 = sortedDeals.slice(0, 10);
+    const others = sortedDeals.slice(10);
+    const othersTotal = others.reduce((s, d) => s + (d["ACV ($M)"] || 0), 0);
+    
+    html += `<div class="deal-section">
+      <div class="deal-header"><span class="deal-title">Closed Deals</span><span class="deal-total">${fmtM(total)} Total ACV</span></div>
+      <table class="deal-table">
+        <thead><tr><th>Client</th><th>Type</th><th>Scope</th><th>ACV</th></tr></thead>
+        <tbody>
+          ${top10.map(d => `<tr>
+            <td class="deal-client">${d.Client}</td>
+            <td>${d.Type}</td>
+            <td class="deal-scope">${d.Scope}</td>
+            <td class="deal-amt">${fmtM(d["ACV ($M)"] || 0)}</td>
+          </tr>`).join("")}
+          ${others.length > 0 ? `<tr style="background:#f9fafb;font-style:italic;">
+            <td class="deal-client">Others (${others.length} deals)</td>
+            <td>—</td>
+            <td class="deal-scope">—</td>
+            <td class="deal-amt">${fmtM(othersTotal)}</td>
+          </tr>` : ''}
+        </tbody>
+      </table>
+    </div>`;
+  }
+  
+  // PIPELINE - Only in Forecast view
+  if (showPipelineAndBonus && pipeline.length) {
+    const total = pipeline.reduce((s, d) => s + (d["Weighted ACV ($M)"] || 0), 0);
+    const sortedPipeline = [...pipeline].sort((a, b) => (b["Weighted ACV ($M)"] || 0) - (a["Weighted ACV ($M)"] || 0));
+    const top10 = sortedPipeline.slice(0, 10);
+    const others = sortedPipeline.slice(10);
+    const othersTotal = others.reduce((s, d) => s + (d["Weighted ACV ($M)"] || 0), 0);
+    const othersACV = others.reduce((s, d) => s + (d["ACV ($M)"] || 0), 0);
+    
+    html += `<div class="deal-section">
+      <div class="deal-header"><span class="deal-title">Active Pipeline</span><span class="deal-total">${fmtM(total)} Weighted ACV</span></div>
+      <table class="deal-table">
+        <thead><tr><th>Client</th><th>Scope</th><th>ACV</th><th>Weighted</th><th>Prob</th></tr></thead>
+        <tbody>
+          ${top10.map(d => {
+            const prob = (d["Probability (H/M/L)"] || "").toLowerCase();
+            const cls = prob.includes("high") ? "high" : prob.includes("med") ? "med" : "low";
+            return `<tr>
+              <td class="deal-client">${d.Client}</td>
+              <td class="deal-scope">${d.Scope}</td>
+              <td class="deal-amt">${fmtM(d["ACV ($M)"] || 0)}</td>
+              <td class="deal-amt">${fmtM(d["Weighted ACV ($M)"] || 0)}</td>
+              <td><span class="prob-badge ${cls}">${d["Probability (H/M/L)"]}</span></td>
+            </tr>`;
+          }).join("")}
+          ${others.length > 0 ? `<tr style="background:#f9fafb;font-style:italic;">
+            <td class="deal-client">Others (${others.length} deals)</td>
+            <td class="deal-scope">—</td>
+            <td class="deal-amt">${fmtM(othersACV)}</td>
+            <td class="deal-amt">${fmtM(othersTotal)}</td>
+            <td>—</td>
+          </tr>` : ''}
+        </tbody>
+      </table>
+    </div>`;
+  }
+  
+  // BONUS - Only in Forecast view
+  if (showPipelineAndBonus && bonus && bonus.length) {
+    const total = bonus.reduce((s, b) => s + (b["Estimated Bonus ($M)"] || 0), 0);
+    const sortedBonus = [...bonus].sort((a, b) => (b["Estimated Bonus ($M)"] || 0) - (a["Estimated Bonus ($M)"] || 0));
+    const top10 = sortedBonus.slice(0, 10);
+    const others = sortedBonus.slice(10);
+    const othersTotal = others.reduce((s, b) => s + (b["Estimated Bonus ($M)"] || 0), 0);
+    
+    html += `<div class="deal-section">
+      <div class="deal-header"><span class="deal-title">Bonus Opportunities</span><span class="deal-total">${fmtM(total)} Total Potential</span></div>
+      <table class="deal-table">
+        <thead><tr><th>Client</th><th>Estimated Bonus</th><th>Probability</th></tr></thead>
+        <tbody>
+          ${top10.map(b => {
+            const prob = (b["Probability (H/M/L)"] || "").toLowerCase();
+            const cls = prob.includes("high") ? "high" : prob.includes("med") ? "med" : "low";
+            return `<tr>
+              <td class="deal-client">${b.Client}</td>
+              <td class="deal-amt">${fmtM(b["Estimated Bonus ($M)"] || 0)}</td>
+              <td><span class="prob-badge ${cls}">${b["Probability (H/M/L)"]}</span></td>
+            </tr>`;
+          }).join("")}
+          ${others.length > 0 ? `<tr style="background:#f9fafb;font-style:italic;">
+            <td class="deal-client">Others (${others.length} entries)</td>
+            <td class="deal-amt">${fmtM(othersTotal)}</td>
+            <td>—</td>
+          </tr>` : ''}
+        </tbody>
+      </table>
+    </div>`;
+  }
+  
+  return html;
+}
+
+// ===== RENDER =====
+function render() {
+  const months = getMonths();
+  const d = compute(months);
+  const mName = MONTHS[currentMonth];
+  const pF = (currentMonth + 1) / 12;
+  
+  document.getElementById("viewLabel").textContent = mName + " 2025 · " + viewMode;
+  
+  let html = "";
+  
+  if (activeTab === "execsum" || activeTab === "overview") {
+    html += `<div class="hero-grid" style="grid-template-columns: repeat(${viewMode === 'FORECAST' ? 2 : 4}, 1fr)">
+      ${heroCard({ 
+        label: "TOTAL SERVICES<br>REVENUE", 
+        value: fmtM(d.rev.total), 
+        actual: d.rev.total, 
+        mtdTgt: getMTD("Rev Total ($M)", mName), 
+        ytdTgt: getMTDYTD("Rev Total ($M)"),
+        annTgt: ANN_TGT.revTotal, 
+        forecast: d.rev.forecastTotal,
+        unit: "$M", 
+        mIdx: currentMonth,
+        isRevOrMargin: true,
+        subs: [
+          { label: "Strategy", value: fmtK(d.rev.strategy), v: d.rev.strategy, t: viewMode === "YTD" ? getMTDYTD("Rev Strategy ($M)") : ANN_TGT.revStrategy * pF },
+          { label: "Consulting", value: fmtM(d.rev.consulting), v: d.rev.consulting, t: viewMode === "YTD" ? getMTDYTD("Rev Consulting ($M)") : ANN_TGT.revConsulting * pF },
+          { label: "Managed Services", value: fmtM(d.rev.ms), v: d.rev.ms, t: viewMode === "YTD" ? getMTDYTD("Rev MS ($M)") : ANN_TGT.revMS * pF }
+        ]
+      })}
+      ${viewMode !== "FORECAST" ? heroCard({ 
+        label: "TOTAL ACV CLOSED", 
+        value: fmtM(d.acv.total), 
+        actual: d.acv.total, 
+        mtdTgt: getMTD("ACV Total ($M)", mName), 
+        ytdTgt: getMTDYTD("ACV Total ($M)"),
+        annTgt: ANN_TGT.acvTotal, 
+        unit: "$M", 
+        mIdx: currentMonth, 
+        subs: [
+          { label: "New Logos", value: fmtM(d.acv.newLogo), v: d.acv.newLogo, t: viewMode === "YTD" ? getMTDYTD("ACV New Logos ($M)") : ANN_TGT.acvNewLogo * pF },
+          { label: "Upsell", value: fmtM(d.acv.upsell), v: d.acv.upsell, t: viewMode === "YTD" ? getMTDYTD("ACV Upsell ($M)") : ANN_TGT.acvUpsell * pF },
+          { label: "Pipeline Carry FY'27", value: d.acv.pipelineCarry.toFixed(0) + "%", v: d.acv.pipelineCarry, t: ANN_TGT.pipelineCarry }
+        ]
+      }) : ''}
+      ${heroCard({ 
+        label: "SERVICES MARGIN", 
+        value: d.mg.overall.toFixed(0) + "%", 
+        actual: d.mg.overall, 
+        mtdTgt: getMTD("Margin %", mName) || 30, 
+        ytdTgt: getMTDYTD("Margin %") || 30,
+        annTgt: ANN_TGT.marginOverall, 
+        unit: "%", 
+        isAvg: true, 
+        mIdx: currentMonth,
+        isRevOrMargin: true,
+        subs: [
+          { label: "Blended Utilization", value: d.mg.util.toFixed(0) + "%", v: d.mg.util, t: ANN_TGT.util },
+          { label: "Consulting Margin", value: d.mg.conM.toFixed(0) + "%", v: d.mg.conM, t: ANN_TGT.conM },
+          { label: "MS Margin", value: d.mg.msM.toFixed(0) + "%", v: d.mg.msM, t: ANN_TGT.msM }
+        ]
+      })}
+      ${viewMode !== "FORECAST" ? heroCard({ 
+        label: "AGENTIC ARR<br>FROM SVCS DEALS", 
+        value: fmtK(d.ag.arr), 
+        actual: d.ag.arr, 
+        mtdTgt: getMTD("Agentic ARR ($M)", mName), 
+        ytdTgt: getMTDYTD("Agentic ARR ($M)"),
+        annTgt: ANN_TGT.arr, 
+        unit: "$M", 
+        mIdx: currentMonth, 
+        subs: [
+          { label: "Agents Created", value: d.ag.created.toLocaleString(), v: d.ag.created, t: ANN_TGT.agents * pF },
+          { label: "AI Efficiency", value: d.ag.eff.toFixed(0) + "%", v: d.ag.eff, t: ANN_TGT.aiEff }
+        ]
+      }) : ''}
+    </div>`;
+    
+    if (activeTab === "overview") {
+      html += `<div class="section-divider"><span class="divider-text">OKR Detail by Objective</span></div>`;
+      html += `<div class="okr-grid">
+        ${okrCard("OKR 1", "Generate $345M in Services Revenue", "blue", [
+          { label: "Consulting New Offerings %", val: d.rev.consultingNew, tgt: ANN_TGT.consultingNew, unit: "%" },
+          { label: "Pipeline Carry FY2027", val: d.acv.pipelineCarry, tgt: ANN_TGT.pipelineCarry, unit: "%" },
+          { label: "Overall Utilization", val: d.mg.util, tgt: ANN_TGT.util, unit: "%" }
+        ])}
+        ${okrCard("OKR 2", "Services as Agentic Software", "teal", [
+          { label: "Agents Created", val: d.ag.created, tgt: ANN_TGT.agents, unit: "" },
+          { label: "Agentic ARR", val: d.ag.arr, tgt: ANN_TGT.arr, unit: "$M" },
+          { label: "AI Efficiency Improvement", val: d.ag.eff, tgt: ANN_TGT.aiEff, unit: "%" }
+        ])}
+        ${okrCard("OKR 3", "Customer & Employee Satisfaction", "green", [
+          { label: "CSAT Improvement", val: d.pp.csat, tgt: ANN_TGT.csat, unit: "%" },
+          { label: "ESAT Improvement", val: d.pp.esat, tgt: ANN_TGT.esat, unit: "%" },
+          { label: "Voluntary Attrition", val: d.pp.vol, tgt: ANN_TGT.vol, unit: "%", low: true },
+          { label: "Regrettable Attrition", val: d.pp.reg, tgt: ANN_TGT.reg, unit: "%", low: true }
+        ])}
+      </div>`;
+      html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
+      html += dealSection(d.deals, d.pipeline, d.bonus, viewMode === "FORECAST");
+    }
+  }
+  
+  if (activeTab === "consulting") {
+    html += `<div class="hero-grid" style="grid-template-columns:repeat(3,1fr)">
+      ${heroCard({ label: "CONSULTING REVENUE", value: fmtM(d.rev.consulting), actual: d.rev.consulting, mtdTgt: getMTD("Rev Consulting ($M)", mName), ytdTgt: getMTDYTD("Rev Consulting ($M)"), annTgt: ANN_TGT.revConsulting, forecast: d.rev.forecastConsulting, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
+      ${heroCard({ label: "CONSULTING MARGIN", value: d.mg.conM.toFixed(0) + "%", actual: d.mg.conM, mtdTgt: 37, annTgt: ANN_TGT.conM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
+      ${heroCard({ label: "ACV - NEW LOGOS", value: fmtM(d.acv.newLogo), actual: d.acv.newLogo, mtdTgt: getMTD("ACV New Logos ($M)", mName), ytdTgt: getMTDYTD("ACV New Logos ($M)"), annTgt: ANN_TGT.acvNewLogo, unit: "$M", mIdx: currentMonth })}
+    </div>`;
+    html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
+    html += dealSection(d.deals.filter(x => x.Type === "New"), d.pipeline, d.bonus, viewMode === "FORECAST");
+  }
+  
+  if (activeTab === "ms") {
+    html += `<div class="hero-grid" style="grid-template-columns:repeat(3,1fr)">
+      ${heroCard({ label: "MS REVENUE", value: fmtM(d.rev.ms), actual: d.rev.ms, mtdTgt: getMTD("Rev MS ($M)", mName), ytdTgt: getMTDYTD("Rev MS ($M)"), annTgt: ANN_TGT.revMS, forecast: d.rev.forecastMS, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
+      ${heroCard({ label: "MS MARGIN", value: d.mg.msM.toFixed(0) + "%", actual: d.mg.msM, mtdTgt: 23, annTgt: ANN_TGT.msM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
+      ${heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth })}
+    </div>`;
+    html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
+    html += dealSection(d.deals.filter(x => x.Type === "Existing"), d.pipeline, d.bonus, viewMode === "FORECAST");
+  }
+  
+  if (activeTab === "people") {
+    html += `<div class="hero-grid">
+      ${heroCard({ label: "CSAT IMPROVEMENT", value: d.pp.csat.toFixed(1) + "%", actual: d.pp.csat, mtdTgt: 2, annTgt: ANN_TGT.csat, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "ESAT IMPROVEMENT", value: d.pp.esat.toFixed(1) + "%", actual: d.pp.esat, mtdTgt: 1.8, annTgt: ANN_TGT.esat, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "VOLUNTARY ATTRITION", value: d.pp.vol.toFixed(1) + "%", actual: d.pp.vol, mtdTgt: 15, annTgt: ANN_TGT.vol, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "REGRETTABLE ATTRITION", value: d.pp.reg.toFixed(1) + "%", actual: d.pp.reg, mtdTgt: 7, annTgt: ANN_TGT.reg, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
+    </div>`;
+    html += `<div class="hero-grid">
+      ${heroCard({ label: "MGR RETENTION", value: d.pp.mgr.toFixed(0) + "%", actual: d.pp.mgr, mtdTgt: 88, annTgt: ANN_TGT.mgr, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "LATERAL HIRE SUCCESS", value: d.pp.lat.toFixed(0) + "%", actual: d.pp.lat, mtdTgt: 48, annTgt: ANN_TGT.lat, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "DIVERSITY SCORE", value: d.pp.div.toFixed(0) + "%", actual: d.pp.div, mtdTgt: 60, annTgt: ANN_TGT.div, unit: "%", isAvg: true, mIdx: currentMonth })}
+    </div>`;
+  }
+  
+  if (activeTab === "sc") {
+    html += `<div class="hero-grid">
+      ${heroCard({ label: "SC STRATEGY REVENUE", value: fmtM(d.sc.rev), actual: d.sc.rev, mtdTgt: 0.7, annTgt: ANN_TGT.scRev, unit: "$M", mIdx: currentMonth })}
+      ${heroCard({ label: "WEIGHTED PIPELINE", value: fmtM(d.sc.pipe), actual: d.sc.pipe, mtdTgt: 1, annTgt: ANN_TGT.scPipe, unit: "$M", mIdx: currentMonth })}
+      ${heroCard({ label: "REFERENCEABLE CUSTOMERS", value: d.sc.cust.toFixed(0), actual: d.sc.cust, mtdTgt: 1, annTgt: ANN_TGT.scCust, unit: "", mIdx: currentMonth })}
+      ${heroCard({ label: "THOUGHT LEADERSHIP", value: d.sc.thought.toFixed(0), actual: d.sc.thought, mtdTgt: 1, annTgt: ANN_TGT.scThought, unit: "", mIdx: currentMonth })}
+    </div>`;
+    html += `<div class="section-divider"><span class="divider-text">SC Strategy OKR Detail</span></div>`;
+    html += `<div class="okr-grid" style="grid-template-columns:1fr">
+      ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
+        { label: "SC Strategy Revenue", val: d.sc.rev, tgt: ANN_TGT.scRev * (currentMonth + 1) / 12, unit: "$M" },
+        { label: "Weighted Pipeline", val: d.sc.pipe, tgt: ANN_TGT.scPipe * (currentMonth + 1) / 12, unit: "$M" },
+        { label: "Referenceable Customers", val: d.sc.cust, tgt: ANN_TGT.scCust * (currentMonth + 1) / 12, unit: "" },
+        { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: ANN_TGT.scThought * (currentMonth + 1) / 12, unit: "" }
+      ])}
+    </div>`;
+  }
+  
+  document.getElementById("main").innerHTML = html;
+}
+
+init();
+</script>
+</body>
+</html>
