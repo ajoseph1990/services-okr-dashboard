@@ -6,6 +6,7 @@
 <title>Services Business OKRs - FY2025</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --bg: #f8f9fa;
@@ -356,6 +357,27 @@ body {
   font-size: 11px; color: #9ca3af; white-space: nowrap;
 }
 
+.upload-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: 8px;
+  border: 1.5px dashed #d1d5db;
+  background: #f9fafb; font-family: inherit; font-size: 13px;
+  font-weight: 600; color: #374151; cursor: pointer; transition: all 0.2s;
+}
+.upload-btn:hover { border-color: #065f46; background: #f0fdf4; color: #065f46; }
+.upload-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+.local-badge { background: #ede9fe; color: #5b21b6; }
+
+.drop-overlay {
+  position: fixed; inset: 0; background: rgba(6,95,70,0.08);
+  border: 3px dashed #065f46; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999; pointer-events: none;
+  font-size: 22px; font-weight: 700; color: #065f46;
+  gap: 12px;
+}
+
 .loading-overlay {
   position: fixed; inset: 0; background: rgba(255,255,255,0.85);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -377,9 +399,13 @@ body {
     <p>FY2025 Performance Dashboard · Strategy | Consulting | Managed Services</p>
   </div>
   <div class="header-right">
+    <input type="file" id="xlsxFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFileInput(event)">
+    <button class="upload-btn" onclick="document.getElementById('xlsxFileInput').click()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      Load Excel
+    </button>
     <div id="authArea">
-      <button class="auth-btn" id="signInBtn" onclick="signIn()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor" stroke="none"/><rect x="0" y="0" width="24" height="24" fill="none"/></svg>
+      <button class="auth-btn" onclick="signIn()">
         <svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
         Connect to SharePoint
       </button>
@@ -421,6 +447,11 @@ body {
 </nav>
 
 <div class="view-label" id="viewLabel">Feb 2025 · MTD</div>
+
+<div class="drop-overlay" id="dropOverlay" style="display:none">
+  <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+  Drop Excel file to load
+</div>
 
 <div class="loading-overlay" id="loadingOverlay" style="display:none">
   <div class="loading-spinner"></div>
@@ -710,6 +741,146 @@ function showLoading(text) {
 function hideLoading() {
   document.getElementById("loadingOverlay").style.display = "none";
 }
+
+// ===== LOCAL EXCEL FILE LOADER =====
+
+// Drag-and-drop support on the whole window
+window.addEventListener("dragover", e => {
+  if ([...e.dataTransfer.items].some(i => i.kind === "file")) {
+    e.preventDefault();
+    document.getElementById("dropOverlay").style.display = "flex";
+  }
+});
+window.addEventListener("dragleave", e => {
+  if (!e.relatedTarget) document.getElementById("dropOverlay").style.display = "none";
+});
+window.addEventListener("drop", e => {
+  e.preventDefault();
+  document.getElementById("dropOverlay").style.display = "none";
+  const file = e.dataTransfer.files[0];
+  if (file) parseLocalExcel(file);
+});
+
+function handleFileInput(e) {
+  const file = e.target.files[0];
+  if (file) parseLocalExcel(file);
+  e.target.value = ""; // reset so same file can be re-loaded
+}
+
+function parseLocalExcel(file) {
+  if (!file.name.match(/\.xlsx?$/i)) {
+    alert("Please load an .xlsx or .xls file.");
+    return;
+  }
+  showLoading("Parsing " + file.name + "...");
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: "array", cellDates: true });
+
+      const sheetNames = {
+        metrics:  SP_CONFIG.sheets.metrics,
+        deals:    SP_CONFIG.sheets.deals,
+        pipeline: SP_CONFIG.sheets.pipeline,
+        bonus:    SP_CONFIG.sheets.bonus
+      };
+
+      function readWbSheet(name) {
+        const ws = wb.Sheets[name];
+        if (!ws) throw new Error(`Sheet "${name}" not found in ${file.name}.`);
+        return XLSX.utils.sheet_to_json(ws, { defval: null });
+      }
+
+      const metricsRows  = readWbSheet(sheetNames.metrics);
+      const dealsRows    = readWbSheet(sheetNames.deals);
+      const pipelineRows = readWbSheet(sheetNames.pipeline);
+      const bonusRows    = readWbSheet(sheetNames.bonus);
+
+      applyParsedData(metricsRows, dealsRows, pipelineRows, bonusRows);
+
+      hideLoading();
+      stopPolling();                       // no polling for local files
+      lastFileModified = null;
+      lastSyncTime = new Date();
+
+      // Show local file badge in authArea (only if not already signed into SharePoint)
+      if (!isLiveData) {
+        const area = document.getElementById("authArea");
+        area.innerHTML = `
+          <div class="user-info">
+            <span class="data-badge local-badge">📂 Local File</span>
+            <span class="sync-label" id="syncLabel">Loaded ${file.name}</span>
+            <button class="upload-btn" onclick="document.getElementById('xlsxFileInput').click()" style="padding:7px 12px;border-radius:6px;font-size:12px">↺ Reload</button>
+            <button class="signout-btn" onclick="clearLocalFile()">✕ Clear</button>
+          </div>`;
+      }
+
+      init();
+    } catch(err) {
+      hideLoading();
+      alert("Failed to parse Excel file:\n" + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function applyParsedData(metricsRows, dealsRows, pipelineRows, bonusRows) {
+  const parseNum = v => (v === null || v === "" || v === undefined) ? undefined : parseFloat(v) || 0;
+
+  const forecastRows = metricsRows.filter(r => String(r.Metric || "").startsWith("Forecast"));
+  const forecasts = {};
+  forecastRows.forEach(r => {
+    const key = String(r.Metric).replace("Forecast - ", "").trim();
+    forecasts[key] = parseNum(r.Value || r["Annual Target"]) || 0;
+  });
+
+  EMBEDDED_DATA.metrics = metricsRows
+    .filter(r => r.Metric && !String(r.Metric).startsWith("Forecast"))
+    .map(r => {
+      const obj = { Metric: String(r.Metric).trim() };
+      if (r["Annual Target"] != null) obj["Annual Target"] = parseNum(r["Annual Target"]);
+      ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].forEach(m => {
+        if (r[m] != null) obj[m] = parseNum(r[m]);
+      });
+      if (r.YTD != null) obj.YTD = parseNum(r.YTD);
+      return obj;
+    });
+
+  EMBEDDED_DATA.deals = dealsRows.map(r => ({
+    Month: String(r.Month || ""), Client: String(r.Client || ""),
+    Type: String(r.Type || ""), Scope: String(r.Scope || ""),
+    "ACV ($M)": parseNum(r["ACV ($M)"]) || 0
+  }));
+
+  EMBEDDED_DATA.pipeline = pipelineRows.map(r => ({
+    Client: String(r.Client || ""), Scope: String(r.Scope || ""),
+    "ACV ($M)": parseNum(r["ACV ($M)"]) || 0,
+    "Weighted ACV ($M)": parseNum(r["Weighted ACV ($M)"]) || 0,
+    "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
+  }));
+
+  EMBEDDED_DATA.bonus = bonusRows.map(r => ({
+    Client: String(r.Client || ""),
+    "Estimated Bonus ($M)": parseNum(r["Estimated Bonus ($M)"]) || 0,
+    "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
+  }));
+
+  EMBEDDED_DATA.forecasts = Object.keys(forecasts).length > 0 ? forecasts : _ORIGINAL_EMBEDDED_DATA.forecasts;
+}
+
+function clearLocalFile() {
+  Object.assign(EMBEDDED_DATA, JSON.parse(JSON.stringify(_ORIGINAL_EMBEDDED_DATA)));
+  document.getElementById("authArea").innerHTML = `
+    <button class="auth-btn" onclick="signIn()">
+      <svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Connect to SharePoint
+    </button>`;
+  init();
+}
+
+// Also update SharePoint's loadSharePointData to reuse applyParsedData
+// (the SP loader already normalises and assigns directly — kept separate intentionally)
 
 </script>
 
