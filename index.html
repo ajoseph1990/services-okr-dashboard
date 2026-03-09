@@ -908,6 +908,25 @@ function applyParsedData(metricsRows, dealsRows, pipelineRows, bonusRows) {
   }));
 
   EMBEDDED_DATA.forecasts = forecasts;
+
+  // Debug: show detected columns and unique ServiceLine values so we can confirm detection
+  const uniq = arr => [...new Set(arr.map(x => x.ServiceLine))].filter(Boolean);
+  const dbg = [
+    `Deals SL col: "${dealsSLCol}" → values: [${uniq(EMBEDDED_DATA.deals).join(", ")}]`,
+    `Pipeline SL col: "${pipelineSLCol}" → values: [${uniq(EMBEDDED_DATA.pipeline).join(", ")}]`,
+    `Bonus SL col: "${bonusSLCol}" → values: [${uniq(EMBEDDED_DATA.bonus).join(", ")}]`
+  ].join("\n");
+  console.log("[SL Debug]\n" + dbg);
+  let dbgEl = document.getElementById("slDebug");
+  if (!dbgEl) {
+    dbgEl = document.createElement("div");
+    dbgEl.id = "slDebug";
+    dbgEl.style.cssText = "position:fixed;bottom:8px;left:8px;background:#1e293b;color:#94a3b8;font:11px/1.5 monospace;padding:8px 12px;border-radius:8px;z-index:9999;max-width:600px;white-space:pre;opacity:0.92;cursor:pointer";
+    dbgEl.title = "Click to dismiss";
+    dbgEl.onclick = () => dbgEl.remove();
+    document.body.appendChild(dbgEl);
+  }
+  dbgEl.textContent = dbg;
 }
 
 function clearLocalFile() {
