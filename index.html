@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Services Business OKRs - FY2025</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js"></script>
 <style>
 :root {
   --bg: #f8f9fa;
@@ -313,6 +314,55 @@ body {
 .prob-badge.high { background: var(--green-bg); color: #065f46; }
 .prob-badge.med { background: var(--amber-bg); color: #92400e; }
 .prob-badge.low { background: var(--red-bg); color: #991b1b; }
+
+/* ===== SHAREPOINT AUTH ===== */
+.auth-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: 8px; border: 1px solid #d1d5db;
+  background: white; font-family: inherit; font-size: 13px; font-weight: 600;
+  color: #374151; cursor: pointer; transition: all 0.2s;
+}
+.auth-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+.auth-btn svg { width: 16px; height: 16px; }
+
+.user-info { display: flex; align-items: center; gap: 10px; }
+
+.data-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.data-badge.live { background: #d1fae5; color: #065f46; }
+.data-badge.embedded { background: #fef3c7; color: #92400e; }
+.data-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+.refresh-btn {
+  padding: 7px 12px; border-radius: 6px; border: 1px solid #d1d5db;
+  background: white; font-family: inherit; font-size: 12px; font-weight: 600;
+  color: #374151; cursor: pointer; transition: all 0.2s;
+}
+.refresh-btn:hover { background: #f0fdf4; border-color: #10b981; color: #065f46; }
+.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.signout-btn {
+  padding: 7px 12px; border-radius: 6px; border: none;
+  background: transparent; font-family: inherit; font-size: 12px;
+  color: #6b7280; cursor: pointer;
+}
+.signout-btn:hover { color: #ef4444; }
+
+.user-name { font-size: 13px; font-weight: 500; color: #374151; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.loading-overlay {
+  position: fixed; inset: 0; background: rgba(255,255,255,0.85);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 1000; gap: 16px;
+}
+.loading-spinner {
+  width: 40px; height: 40px; border: 3px solid #e5e7eb;
+  border-top-color: #065f46; border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: #374151; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -323,6 +373,13 @@ body {
     <p>FY2025 Performance Dashboard · Strategy | Consulting | Managed Services</p>
   </div>
   <div class="header-right">
+    <div id="authArea">
+      <button class="auth-btn" id="signInBtn" onclick="signIn()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" fill="currentColor" stroke="none"/><rect x="0" y="0" width="24" height="24" fill="none"/></svg>
+        <svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        Connect to SharePoint
+      </button>
+    </div>
     <select class="month-select" id="monthSel"></select>
     <div class="view-toggle">
       <button class="view-btn active" data-view="MTD">MTD</button>
@@ -361,7 +418,240 @@ body {
 
 <div class="view-label" id="viewLabel">Feb 2025 · MTD</div>
 
+<div class="loading-overlay" id="loadingOverlay" style="display:none">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">Loading from SharePoint...</div>
+</div>
+
 <main class="main" id="main"></main>
+
+<script>
+// ===== SHAREPOINT / MSAL CONFIG =====
+// SETUP REQUIRED: Replace CLIENT_ID with your Azure AD App Registration client ID.
+// See README for instructions: https://github.com/ajoseph1990/services-okr-dashboard
+const SP_CONFIG = {
+  clientId: "YOUR_CLIENT_ID_HERE",           // Azure AD App Registration → Application (client) ID
+  tenantId: "gep1.onmicrosoft.com",          // Your tenant (or use "common" for any org account)
+  sharePointHost: "gep1.sharepoint.com",
+  sitePath: "/sites/ResourcingPlanner",
+  fileName: "GEP_Services_OKR_Data Updated.xlsx",
+  sheets: {
+    metrics:  "Monthly Metrics",
+    deals:    "Deals",
+    pipeline: "Pipeline",
+    bonus:    "Bonus"
+  }
+};
+
+let msalInstance = null;
+let currentAccount = null;
+let isLiveData = false;
+
+function initMSAL() {
+  if (SP_CONFIG.clientId === "YOUR_CLIENT_ID_HERE") return; // Not configured yet
+  try {
+    msalInstance = new msal.PublicClientApplication({
+      auth: {
+        clientId: SP_CONFIG.clientId,
+        authority: `https://login.microsoftonline.com/${SP_CONFIG.tenantId}`,
+        redirectUri: window.location.origin + window.location.pathname
+      },
+      cache: { cacheLocation: "sessionStorage" }
+    });
+    // Check for existing session
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      currentAccount = accounts[0];
+      showUserInfo(currentAccount);
+      loadSharePointData();
+    }
+  } catch(e) {
+    console.warn("MSAL init failed:", e);
+  }
+}
+
+async function signIn() {
+  if (!msalInstance) {
+    alert("SharePoint is not configured yet.\n\nTo connect, an Azure AD App Registration is needed.\nSee README for setup instructions.");
+    return;
+  }
+  try {
+    const result = await msalInstance.loginPopup({
+      scopes: ["User.Read", "Sites.Read.All", "Files.Read.All"]
+    });
+    currentAccount = result.account;
+    showUserInfo(currentAccount);
+    await loadSharePointData();
+  } catch(e) {
+    if (!e.message?.includes("user_cancelled")) {
+      alert("Sign in failed: " + e.message);
+    }
+  }
+}
+
+async function signOut() {
+  if (!msalInstance) return;
+  await msalInstance.logoutPopup({ account: currentAccount });
+  currentAccount = null;
+  isLiveData = false;
+  document.getElementById("authArea").innerHTML = `
+    <button class="auth-btn" id="signInBtn" onclick="signIn()">
+      <svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Connect to SharePoint
+    </button>`;
+  // Reset to embedded data
+  Object.assign(EMBEDDED_DATA, _ORIGINAL_EMBEDDED_DATA);
+  init();
+}
+
+function showUserInfo(account) {
+  const name = account.name || account.username;
+  document.getElementById("authArea").innerHTML = `
+    <div class="user-info">
+      <span class="data-badge ${isLiveData ? 'live' : 'embedded'}" id="dataBadge">
+        ${isLiveData ? 'Live Data' : 'Connecting...'}
+      </span>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadSharePointData()">↻ Refresh</button>
+      <span class="user-name" title="${name}">${name}</span>
+      <button class="signout-btn" onclick="signOut()">Sign out</button>
+    </div>`;
+}
+
+async function getGraphToken() {
+  const result = await msalInstance.acquireTokenSilent({
+    scopes: ["https://graph.microsoft.com/Sites.Read.All", "https://graph.microsoft.com/Files.Read.All"],
+    account: currentAccount
+  }).catch(() => msalInstance.acquireTokenPopup({
+    scopes: ["https://graph.microsoft.com/Sites.Read.All", "https://graph.microsoft.com/Files.Read.All"]
+  }));
+  return result.accessToken;
+}
+
+async function graphGet(token, path) {
+  const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error(`Graph API ${path} → ${res.status}`);
+  return res.json();
+}
+
+async function readSheet(token, driveId, itemId, sheetName) {
+  const data = await graphGet(token, `/drives/${driveId}/items/${itemId}/workbook/worksheets('${encodeURIComponent(sheetName)}')/usedRange`);
+  const [headers, ...rows] = data.values;
+  return rows
+    .filter(r => r.some(c => c !== null && c !== ""))
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => { if (h) obj[String(h).trim()] = r[i] ?? null; });
+      return obj;
+    });
+}
+
+async function loadSharePointData() {
+  const refreshBtn = document.getElementById("refreshBtn");
+  if (refreshBtn) refreshBtn.disabled = true;
+  showLoading("Connecting to SharePoint...");
+  try {
+    const token = await getGraphToken();
+
+    // 1. Get site
+    showLoading("Locating SharePoint site...");
+    const site = await graphGet(token, `/sites/${SP_CONFIG.sharePointHost}:${SP_CONFIG.sitePath}`);
+
+    // 2. Find the Excel file by name
+    showLoading("Finding Excel file...");
+    const search = await graphGet(token, `/sites/${site.id}/drive/root/search(q='${encodeURIComponent(SP_CONFIG.fileName)}')`);
+    const fileItem = search.value?.find(f => f.name === SP_CONFIG.fileName || f.name.includes("GEP_Services_OKR_Data"));
+    if (!fileItem) throw new Error(`File "${SP_CONFIG.fileName}" not found in SharePoint.`);
+
+    const driveId = fileItem.parentReference?.driveId;
+    const itemId  = fileItem.id;
+
+    // 3. Read all sheets in parallel
+    showLoading("Reading Excel data...");
+    const [metricsRows, dealsRows, pipelineRows, bonusRows] = await Promise.all([
+      readSheet(token, driveId, itemId, SP_CONFIG.sheets.metrics),
+      readSheet(token, driveId, itemId, SP_CONFIG.sheets.deals),
+      readSheet(token, driveId, itemId, SP_CONFIG.sheets.pipeline),
+      readSheet(token, driveId, itemId, SP_CONFIG.sheets.bonus)
+    ]);
+
+    // 4. Parse forecasts out of metrics (rows with "Forecast" in Metric column)
+    const forecastRows = metricsRows.filter(r => String(r.Metric || "").startsWith("Forecast"));
+    const forecasts = {};
+    forecastRows.forEach(r => {
+      const key = String(r.Metric).replace("Forecast - ", "").trim();
+      forecasts[key] = parseFloat(r.Value || r["Annual Target"] || 0) || 0;
+    });
+    // Fallback: use EMBEDDED_DATA forecasts if none found
+    const finalForecasts = Object.keys(forecasts).length > 0 ? forecasts : _ORIGINAL_EMBEDDED_DATA.forecasts;
+
+    // 5. Normalise numeric fields
+    const parseNum = v => (v === null || v === "" || v === undefined) ? undefined : parseFloat(v) || 0;
+    const normalizedMetrics = metricsRows
+      .filter(r => r.Metric && !String(r.Metric).startsWith("Forecast"))
+      .map(r => {
+        const obj = { Metric: String(r.Metric).trim() };
+        if (r["Annual Target"] !== null && r["Annual Target"] !== undefined) obj["Annual Target"] = parseNum(r["Annual Target"]);
+        ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].forEach(m => {
+          if (r[m] !== null && r[m] !== undefined) obj[m] = parseNum(r[m]);
+        });
+        if (r.YTD !== null && r.YTD !== undefined) obj.YTD = parseNum(r.YTD);
+        return obj;
+      });
+
+    const normalizedDeals = dealsRows.map(r => ({
+      Month:       String(r.Month || ""),
+      Client:      String(r.Client || ""),
+      Type:        String(r.Type || ""),
+      Scope:       String(r.Scope || ""),
+      "ACV ($M)":  parseNum(r["ACV ($M)"]) || 0
+    }));
+
+    const normalizedPipeline = pipelineRows.map(r => ({
+      Client:                String(r.Client || ""),
+      Scope:                 String(r.Scope || ""),
+      "ACV ($M)":            parseNum(r["ACV ($M)"]) || 0,
+      "Weighted ACV ($M)":   parseNum(r["Weighted ACV ($M)"]) || 0,
+      "Probability (H/M/L)": String(r["Probability (H/M/L)"] || r.Probability || "Low")
+    }));
+
+    const normalizedBonus = bonusRows.map(r => ({
+      Client:                   String(r.Client || ""),
+      "Estimated Bonus ($M)":   parseNum(r["Estimated Bonus ($M)"]) || 0,
+      "Probability (H/M/L)":    String(r["Probability (H/M/L)"] || r.Probability || "Low")
+    }));
+
+    // 6. Replace EMBEDDED_DATA with live data
+    EMBEDDED_DATA.metrics   = normalizedMetrics;
+    EMBEDDED_DATA.deals     = normalizedDeals;
+    EMBEDDED_DATA.pipeline  = normalizedPipeline;
+    EMBEDDED_DATA.bonus     = normalizedBonus;
+    EMBEDDED_DATA.forecasts = finalForecasts;
+
+    isLiveData = true;
+    hideLoading();
+    showUserInfo(currentAccount); // Update badge to "Live Data"
+    init(); // Re-render with live data
+
+  } catch(err) {
+    hideLoading();
+    console.error("SharePoint load error:", err);
+    const msg = err.message || String(err);
+    document.getElementById("authArea").innerHTML += `<span style="color:#ef4444;font-size:12px;margin-left:8px">⚠ ${msg}</span>`;
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+function showLoading(text) {
+  document.getElementById("loadingText").textContent = text;
+  document.getElementById("loadingOverlay").style.display = "flex";
+}
+function hideLoading() {
+  document.getElementById("loadingOverlay").style.display = "none";
+}
+
+</script>
 
 <script>
 // ===== EMBEDDED DATA WITH YTD FROM COLUMN O =====
@@ -1035,7 +1325,11 @@ function render() {
   document.getElementById("main").innerHTML = html;
 }
 
+// Save original embedded data so we can restore it on sign-out
+const _ORIGINAL_EMBEDDED_DATA = JSON.parse(JSON.stringify(EMBEDDED_DATA));
+
 init();
+initMSAL();
 </script>
 </body>
 </html>
