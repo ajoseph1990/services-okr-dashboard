@@ -1519,32 +1519,34 @@ function render() {
     </div>`;
     
     if (activeTab === "overview") {
-      html += `<div class="section-divider"><span class="divider-text">OKR Detail by Objective</span></div>`;
-      const nt = viewMode === "MTD" ? null : undefined; // null tgt = no target shown in MTD
-      html += `<div class="okr-grid">
-        ${okrCard("OKR 1", "Generate $345M in Services Revenue", "blue", [
-          { label: "Consulting New Offerings %", val: d.rev.consultingNew, tgt: nt ?? ANN_TGT.consultingNew, unit: "%" },
-          { label: "Pipeline Carry FY2027", val: d.acv.pipelineCarry, tgt: nt ?? ANN_TGT.pipelineCarry, unit: "%" },
-          { label: "Overall Utilization", val: d.mg.util, tgt: ANN_TGT.util, unit: "%" }
-        ])}
-        ${okrCard("OKR 2", "Services as Agentic Software", "teal", [
-          { label: "Agents Created", val: d.ag.created, tgt: nt ?? ANN_TGT.agents, unit: "" },
-          { label: "Agentic ARR", val: d.ag.arr, tgt: nt ?? ANN_TGT.arr, unit: "$M" },
-          { label: "AI Efficiency Improvement", val: d.ag.eff, tgt: nt ?? ANN_TGT.aiEff, unit: "%" }
-        ])}
-        ${okrCard("OKR 3", "Customer & Employee Satisfaction", "green", [
-          { label: "CSAT Improvement", val: d.pp.csat, tgt: nt ?? ANN_TGT.csat, unit: "%" },
-          { label: "ESAT Improvement", val: d.pp.esat, tgt: nt ?? ANN_TGT.esat, unit: "%" },
-          { label: "Voluntary Attrition", val: d.pp.vol, tgt: nt ?? ANN_TGT.vol, unit: "%", low: true },
-          { label: "Regrettable Attrition", val: d.pp.reg, tgt: nt ?? ANN_TGT.reg, unit: "%", low: true }
-        ])}
-        ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
-          { label: "SC Strategy Revenue", val: d.sc.rev, tgt: nt ?? ANN_TGT.scRev, unit: "$M" },
-          { label: "Weighted Pipeline", val: d.sc.pipe, tgt: nt ?? ANN_TGT.scPipe, unit: "$M" },
-          { label: "Referenceable Customers", val: d.sc.cust, tgt: nt ?? ANN_TGT.scCust, unit: "" },
-          { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: nt ?? ANN_TGT.scThought, unit: "" }
-        ])}
-      </div>`;
+      if (viewMode !== "FORECAST") {
+        html += `<div class="section-divider"><span class="divider-text">OKR Detail by Objective</span></div>`;
+        const nt = viewMode === "MTD" ? null : undefined; // null tgt = no target shown in MTD
+        html += `<div class="okr-grid">
+          ${okrCard("OKR 1", "Generate $345M in Services Revenue", "blue", [
+            { label: "Consulting New Offerings %", val: d.rev.consultingNew, tgt: nt ?? ANN_TGT.consultingNew, unit: "%" },
+            { label: "Pipeline Carry FY2027", val: d.acv.pipelineCarry, tgt: nt ?? ANN_TGT.pipelineCarry, unit: "%" },
+            { label: "Overall Utilization", val: d.mg.util, tgt: ANN_TGT.util, unit: "%" }
+          ])}
+          ${okrCard("OKR 2", "Services as Agentic Software", "teal", [
+            { label: "Agents Created", val: d.ag.created, tgt: nt ?? ANN_TGT.agents, unit: "" },
+            { label: "Agentic ARR", val: d.ag.arr, tgt: nt ?? ANN_TGT.arr, unit: "$M" },
+            { label: "AI Efficiency Improvement", val: d.ag.eff, tgt: nt ?? ANN_TGT.aiEff, unit: "%" }
+          ])}
+          ${okrCard("OKR 3", "Customer & Employee Satisfaction", "green", [
+            { label: "CSAT Improvement", val: d.pp.csat, tgt: nt ?? ANN_TGT.csat, unit: "%" },
+            { label: "ESAT Improvement", val: d.pp.esat, tgt: nt ?? ANN_TGT.esat, unit: "%" },
+            { label: "Voluntary Attrition", val: d.pp.vol, tgt: nt ?? ANN_TGT.vol, unit: "%", low: true },
+            { label: "Regrettable Attrition", val: d.pp.reg, tgt: nt ?? ANN_TGT.reg, unit: "%", low: true }
+          ])}
+          ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
+            { label: "SC Strategy Revenue", val: d.sc.rev, tgt: nt ?? ANN_TGT.scRev, unit: "$M" },
+            { label: "Weighted Pipeline", val: d.sc.pipe, tgt: nt ?? ANN_TGT.scPipe, unit: "$M" },
+            { label: "Referenceable Customers", val: d.sc.cust, tgt: nt ?? ANN_TGT.scCust, unit: "" },
+            { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: nt ?? ANN_TGT.scThought, unit: "" }
+          ])}
+        </div>`;
+      }
       html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
       html += dealSection(d.deals, d.pipeline, d.bonus, viewMode === "FORECAST");
     }
