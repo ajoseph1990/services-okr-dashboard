@@ -977,7 +977,6 @@ const ANN_TGT = {
   acvTotal: 175, acvNewLogo: 65, acvUpsell: 110, pipelineCarry: 15,
   marginOverall: 30, util: 84, conM: 42, conU: 82, msM: 27, msU: 88, msRenewal: 75,
   agents: 5000, arr: 10, aiEff: 20,
-  csat: 5, esat: 5, vol: 15, reg: 7, mgr: 90, lat: 50, div: 80,
 };
 
 let DATA = null;
@@ -1188,8 +1187,8 @@ function heroCard(opts) {
     displayForecast = null;
     forecastLabel = "";
   } else if (viewMode === "YTD") {
-    // Only use target if explicitly provided from Excel — never fabricate from annual
-    target = ytdTgt || null;
+    // For avg/rate metrics (%), annTgt is the correct YTD comparison (not prorated). For cumulative metrics, only use explicit ytdTgt from Excel.
+    target = ytdTgt || (isAvg ? annTgt : null);
     pct = target ? (actual / target) * 100 : null;
     displayForecast = null;
     forecastLabel = "";
@@ -1559,10 +1558,10 @@ function render() {
             { label: "AI Efficiency Improvement", val: d.ag.eff, tgt: nt ?? ANN_TGT.aiEff, unit: "%" }
           ])}
           ${okrCard("OKR 3", "Customer & Employee Satisfaction", "green", [
-            { label: "CSAT Improvement", val: d.pp.csat, tgt: nt ?? ANN_TGT.csat, unit: "%" },
-            { label: "ESAT Improvement", val: d.pp.esat, tgt: nt ?? ANN_TGT.esat, unit: "%" },
-            { label: "Voluntary Attrition", val: d.pp.vol, tgt: nt ?? ANN_TGT.vol, unit: "%", low: true },
-            { label: "Regrettable Attrition", val: d.pp.reg, tgt: nt ?? ANN_TGT.reg, unit: "%", low: true }
+            { label: "CSAT Improvement", val: d.pp.csat, tgt: viewMode === "MTD" ? null : getAnnTgt("CSAT %"), unit: "%" },
+            { label: "ESAT Improvement", val: d.pp.esat, tgt: viewMode === "MTD" ? null : getAnnTgt("ESAT %"), unit: "%" },
+            { label: "Voluntary Attrition", val: d.pp.vol, tgt: viewMode === "MTD" ? null : getAnnTgt("Voluntary Attrition %"), unit: "%", low: true },
+            { label: "Regrettable Attrition", val: d.pp.reg, tgt: viewMode === "MTD" ? null : getAnnTgt("Regrettable Attrition %"), unit: "%", low: true }
           ])}
           ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
             { label: "SC Strategy Revenue", val: d.sc.rev, tgt: viewMode === "MTD" ? null : getAnnTgt("SC Revenue ($M)"), unit: "$M" },
@@ -1608,15 +1607,15 @@ function render() {
     const ppMonths = ppMode === "MTD" ? [mName] : MONTHS.slice(0, currentMonth + 1);
     const pp = compute(ppMonths).pp;
     html += `<div class="hero-grid">
-      ${heroCard({ label: "CSAT IMPROVEMENT", value: pp.csat.toFixed(1) + "%", actual: pp.csat, mtdTgt: null, ytdTgt: getMTDYTD("CSAT %"), annTgt: ANN_TGT.csat, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "ESAT IMPROVEMENT", value: pp.esat.toFixed(1) + "%", actual: pp.esat, mtdTgt: null, ytdTgt: getMTDYTD("ESAT %"), annTgt: ANN_TGT.esat, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "VOLUNTARY ATTRITION", value: pp.vol.toFixed(1) + "%", actual: pp.vol, mtdTgt: null, ytdTgt: getMTDYTD("Voluntary Attrition %"), annTgt: ANN_TGT.vol, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "REGRETTABLE ATTRITION", value: pp.reg.toFixed(1) + "%", actual: pp.reg, mtdTgt: null, ytdTgt: getMTDYTD("Regrettable Attrition %"), annTgt: ANN_TGT.reg, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "CSAT IMPROVEMENT", value: pp.csat.toFixed(1) + "%", actual: pp.csat, mtdTgt: getAnnTgt("CSAT %"), ytdTgt: getMTDYTD("CSAT %"), annTgt: getAnnTgt("CSAT %"), unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "ESAT IMPROVEMENT", value: pp.esat.toFixed(1) + "%", actual: pp.esat, mtdTgt: getAnnTgt("ESAT %"), ytdTgt: getMTDYTD("ESAT %"), annTgt: getAnnTgt("ESAT %"), unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "VOLUNTARY ATTRITION", value: pp.vol.toFixed(1) + "%", actual: pp.vol, mtdTgt: getAnnTgt("Voluntary Attrition %"), ytdTgt: getMTDYTD("Voluntary Attrition %"), annTgt: getAnnTgt("Voluntary Attrition %"), unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "REGRETTABLE ATTRITION", value: pp.reg.toFixed(1) + "%", actual: pp.reg, mtdTgt: getAnnTgt("Regrettable Attrition %"), ytdTgt: getMTDYTD("Regrettable Attrition %"), annTgt: getAnnTgt("Regrettable Attrition %"), unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
     </div>`;
     html += `<div class="hero-grid">
-      ${heroCard({ label: "MGR RETENTION", value: pp.mgr.toFixed(0) + "%", actual: pp.mgr, mtdTgt: null, ytdTgt: getMTDYTD("Mgr Retention %"), annTgt: ANN_TGT.mgr, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "LATERAL HIRE SUCCESS", value: pp.lat.toFixed(0) + "%", actual: pp.lat, mtdTgt: null, ytdTgt: getMTDYTD("Lateral Hire Success %"), annTgt: ANN_TGT.lat, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "DIVERSITY SCORE", value: pp.div.toFixed(0) + "%", actual: pp.div, mtdTgt: null, ytdTgt: getMTDYTD("Diversity Score %"), annTgt: ANN_TGT.div, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "MGR RETENTION", value: pp.mgr.toFixed(0) + "%", actual: pp.mgr, mtdTgt: getAnnTgt("Mgr Retention %"), ytdTgt: getMTDYTD("Mgr Retention %"), annTgt: getAnnTgt("Mgr Retention %"), unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "LATERAL HIRE SUCCESS", value: pp.lat.toFixed(0) + "%", actual: pp.lat, mtdTgt: getAnnTgt("Lateral Hire Success %"), ytdTgt: getMTDYTD("Lateral Hire Success %"), annTgt: getAnnTgt("Lateral Hire Success %"), unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${heroCard({ label: "DIVERSITY SCORE", value: pp.div.toFixed(0) + "%", actual: pp.div, mtdTgt: getAnnTgt("Diversity Score %"), ytdTgt: getMTDYTD("Diversity Score %"), annTgt: getAnnTgt("Diversity Score %"), unit: "%", isAvg: true, mIdx: currentMonth })}
     </div>`;
   }
   
