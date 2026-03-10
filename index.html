@@ -1023,6 +1023,10 @@ function init() {
       document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
       activeTab = tab.dataset.tab;
+      // People tab has no Forecast view — clamp to YTD
+      if (activeTab === "people" && viewMode === "FORECAST") {
+        viewMode = "YTD";
+      }
       render();
     };
   });
@@ -1446,7 +1450,13 @@ function render() {
   const d = compute(months);
   const mName = MONTHS[currentMonth];
   const pF = (currentMonth + 1) / 12;
-  
+
+  // Hide Forecast button on People tab; show it on all others
+  const forecastBtn = document.querySelector('.view-btn[data-view="FORECAST"]');
+  if (forecastBtn) forecastBtn.style.display = activeTab === "people" ? "none" : "";
+  // Sync active state on all view buttons
+  document.querySelectorAll(".view-btn").forEach(b => b.classList.toggle("active", b.dataset.view === viewMode));
+
   document.getElementById("viewLabel").textContent = mName + " 2025 · " + viewMode;
   
   let html = "";
@@ -1465,9 +1475,9 @@ function render() {
         mIdx: currentMonth,
         isRevOrMargin: true,
         subs: [
-          { label: "Strategy", value: fmtK(d.rev.strategy), v: d.rev.strategy, t: viewMode === "YTD" ? getMTDYTD("Rev Strategy ($M)") : viewMode === "MTD" ? getMTD("Rev Strategy ($M)", mName) : ANN_TGT.revStrategy / 12 },
-          { label: "Consulting", value: fmtM(d.rev.consulting), v: d.rev.consulting, t: viewMode === "YTD" ? getMTDYTD("Rev Consulting ($M)") : viewMode === "MTD" ? getMTD("Rev Consulting ($M)", mName) : ANN_TGT.revConsulting / 12 },
-          { label: "Managed Services", value: fmtM(d.rev.ms), v: d.rev.ms, t: viewMode === "YTD" ? getMTDYTD("Rev MS ($M)") : viewMode === "MTD" ? getMTD("Rev MS ($M)", mName) : ANN_TGT.revMS / 12 }
+          { label: "Strategy", value: fmtK(d.rev.strategy), v: d.rev.strategy, t: viewMode === "YTD" ? getMTDYTD("Rev Strategy ($M)") : viewMode === "MTD" ? getMTD("Rev Strategy ($M)", mName) : ANN_TGT.revStrategy },
+          { label: "Consulting", value: fmtM(d.rev.consulting), v: d.rev.consulting, t: viewMode === "YTD" ? getMTDYTD("Rev Consulting ($M)") : viewMode === "MTD" ? getMTD("Rev Consulting ($M)", mName) : ANN_TGT.revConsulting },
+          { label: "Managed Services", value: fmtM(d.rev.ms), v: d.rev.ms, t: viewMode === "YTD" ? getMTDYTD("Rev MS ($M)") : viewMode === "MTD" ? getMTD("Rev MS ($M)", mName) : ANN_TGT.revMS }
         ]
       })}
       ${viewMode !== "FORECAST" ? heroCard({ 
