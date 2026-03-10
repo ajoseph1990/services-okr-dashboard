@@ -172,6 +172,7 @@ body {
 .status-badge.green { background: var(--green-bg); color: #065f46; }
 .status-badge.red { background: var(--red-bg); color: #991b1b; }
 .status-badge.amber { background: var(--amber-bg); color: #92400e; }
+.status-badge.neutral { background: #f3f4f6; color: #6b7280; }
 .status-badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 
 .hero-pct { font-size: 13px; font-weight: 600; color: var(--text2); }
@@ -1174,10 +1175,11 @@ function heroCard(opts) {
   const { label, value, actual, mtdTgt, ytdTgt, annTgt, forecast, unit, mIdx, subs, isAvg, low, isRevOrMargin, noPct } = opts;
   
   let target, pct, displayForecast, forecastLabel;
-  
+  const noMTDTarget = viewMode === "MTD" && mtdTgt == null;
+
   if (viewMode === "MTD") {
-    target = mtdTgt || (isAvg ? annTgt : annTgt / 12);
-    pct = target ? (actual / target) * 100 : 0;
+    target = noMTDTarget ? null : mtdTgt;
+    pct = target ? (actual / target) * 100 : null;
     displayForecast = forecast || (isAvg ? actual : (mIdx > 0 ? actual / (mIdx + 1) * 12 : actual * 12));
     forecastLabel = "Run-rate";
   } else if (viewMode === "YTD") {
@@ -1193,8 +1195,8 @@ function heroCard(opts) {
     forecastLabel = "Forecast";
   }
   
-  const color = pctColor(pct, low);
-  const status = statusText(pct, low);
+  const color = noMTDTarget ? "neutral" : pctColor(pct, low);
+  const status = noMTDTarget ? "—" : statusText(pct, low);
   
   const gap = displayForecast - annTgt;
   const gapStr = unit === "$M" ? (gap >= 0 ? "+" + fmtM(gap) : "-" + fmtM(Math.abs(gap))) :
@@ -1220,9 +1222,14 @@ function heroCard(opts) {
         : `Forecast: ${forecastStr} · ${pct.toFixed(0)}% vs Annual target`;
     }
   } else {
-    targetLineStr = noPct
-      ? `MTD target: ${fmtTgt(target)}`
-      : `MTD target: ${fmtTgt(target)} · ${pct.toFixed(0)}% vs MTD target`;
+    // MTD — only show target line when a monthly target exists
+    if (noMTDTarget) {
+      targetLineStr = "";
+    } else {
+      targetLineStr = noPct
+        ? `MTD target: ${fmtTgt(target)}`
+        : `MTD target: ${fmtTgt(target)} · ${pct.toFixed(0)}% vs MTD target`;
+    }
   }
   
   let subsHtml = "";
@@ -1250,8 +1257,8 @@ function heroCard(opts) {
     }).join("");
   }
   
-  // Don't show % badge for noPct cards, or in Forecast mode for rev/margin
-  const showPct = !noPct && !(viewMode === "FORECAST" && isRevOrMargin);
+  // Don't show % badge for noPct cards, or in Forecast mode for rev/margin, or MTD with no monthly target
+  const showPct = !noPct && !noMTDTarget && !(viewMode === "FORECAST" && isRevOrMargin);
   
   // Only show forecast/run-rate section in Forecast view
   const showForecastSection = viewMode === "FORECAST";
@@ -1456,9 +1463,9 @@ function render() {
         mIdx: currentMonth,
         isRevOrMargin: true,
         subs: [
-          { label: "Strategy", value: fmtK(d.rev.strategy), v: d.rev.strategy, t: viewMode === "YTD" ? getMTDYTD("Rev Strategy ($M)") : getMTD("Rev Strategy ($M)", mName) || ANN_TGT.revStrategy / 12 },
-          { label: "Consulting", value: fmtM(d.rev.consulting), v: d.rev.consulting, t: viewMode === "YTD" ? getMTDYTD("Rev Consulting ($M)") : getMTD("Rev Consulting ($M)", mName) || ANN_TGT.revConsulting / 12 },
-          { label: "Managed Services", value: fmtM(d.rev.ms), v: d.rev.ms, t: viewMode === "YTD" ? getMTDYTD("Rev MS ($M)") : getMTD("Rev MS ($M)", mName) || ANN_TGT.revMS / 12 }
+          { label: "Strategy", value: fmtK(d.rev.strategy), v: d.rev.strategy, t: viewMode === "YTD" ? getMTDYTD("Rev Strategy ($M)") : viewMode === "MTD" ? getMTD("Rev Strategy ($M)", mName) : ANN_TGT.revStrategy / 12 },
+          { label: "Consulting", value: fmtM(d.rev.consulting), v: d.rev.consulting, t: viewMode === "YTD" ? getMTDYTD("Rev Consulting ($M)") : viewMode === "MTD" ? getMTD("Rev Consulting ($M)", mName) : ANN_TGT.revConsulting / 12 },
+          { label: "Managed Services", value: fmtM(d.rev.ms), v: d.rev.ms, t: viewMode === "YTD" ? getMTDYTD("Rev MS ($M)") : viewMode === "MTD" ? getMTD("Rev MS ($M)", mName) : ANN_TGT.revMS / 12 }
         ]
       })}
       ${viewMode !== "FORECAST" ? heroCard({ 
@@ -1471,8 +1478,8 @@ function render() {
         unit: "$M", 
         mIdx: currentMonth, 
         subs: [
-          { label: "New Logos", value: fmtM(d.acv.newLogo), v: d.acv.newLogo, t: viewMode === "YTD" ? getMTDYTD("ACV New Logos ($M)") : getMTD("ACV New Logos ($M)", mName) || ANN_TGT.acvNewLogo / 12 },
-          { label: "Upsell", value: fmtM(d.acv.upsell), v: d.acv.upsell, t: viewMode === "YTD" ? getMTDYTD("ACV Upsell ($M)") : getMTD("ACV Upsell ($M)", mName) || ANN_TGT.acvUpsell / 12 },
+          { label: "New Logos", value: fmtM(d.acv.newLogo), v: d.acv.newLogo, t: viewMode === "YTD" ? getMTDYTD("ACV New Logos ($M)") : viewMode === "MTD" ? getMTD("ACV New Logos ($M)", mName) : ANN_TGT.acvNewLogo / 12 },
+          { label: "Upsell", value: fmtM(d.acv.upsell), v: d.acv.upsell, t: viewMode === "YTD" ? getMTDYTD("ACV Upsell ($M)") : viewMode === "MTD" ? getMTD("ACV Upsell ($M)", mName) : ANN_TGT.acvUpsell / 12 },
           { label: "Pipeline Carry FY'27", value: d.acv.pipelineCarry.toFixed(0) + "%", v: d.acv.pipelineCarry, t: ANN_TGT.pipelineCarry }
         ]
       }) : ''}
@@ -1480,7 +1487,7 @@ function render() {
         label: "SERVICES MARGIN", 
         value: d.mg.overall.toFixed(0) + "%", 
         actual: d.mg.overall, 
-        mtdTgt: getMTD("Margin %", mName) || 30, 
+        mtdTgt: getMTD("Margin %", mName),
         ytdTgt: getMTDYTD("Margin %") || 30,
         annTgt: ANN_TGT.marginOverall, 
         unit: "%", 
@@ -1488,9 +1495,9 @@ function render() {
         mIdx: currentMonth,
         isRevOrMargin: true,
         subs: [
-          { label: "Blended Utilization", value: d.mg.util.toFixed(0) + "%", v: d.mg.util, t: getMTD("Utilization %", mName) || ANN_TGT.util },
-          { label: "Consulting Margin", value: d.mg.conM.toFixed(0) + "%", v: d.mg.conM, t: getMTD("Consulting Margin %", mName) || ANN_TGT.conM },
-          { label: "MS Margin", value: d.mg.msM.toFixed(0) + "%", v: d.mg.msM, t: getMTD("MS Margin %", mName) || ANN_TGT.msM }
+          { label: "Blended Utilization", value: d.mg.util.toFixed(0) + "%", v: d.mg.util, t: viewMode === "MTD" ? getMTD("Utilization %", mName) : ANN_TGT.util },
+          { label: "Consulting Margin", value: d.mg.conM.toFixed(0) + "%", v: d.mg.conM, t: viewMode === "MTD" ? getMTD("Consulting Margin %", mName) : ANN_TGT.conM },
+          { label: "MS Margin", value: d.mg.msM.toFixed(0) + "%", v: d.mg.msM, t: viewMode === "MTD" ? getMTD("MS Margin %", mName) : ANN_TGT.msM }
         ]
       })}
       ${viewMode !== "FORECAST" ? heroCard({ 
@@ -1503,8 +1510,8 @@ function render() {
         unit: "$M", 
         mIdx: currentMonth, 
         subs: [
-          { label: "Agents Created", value: d.ag.created.toLocaleString(), v: d.ag.created, t: ANN_TGT.agents * pF },
-          { label: "AI Efficiency", value: d.ag.eff.toFixed(0) + "%", v: d.ag.eff, t: ANN_TGT.aiEff }
+          { label: "Agents Created", value: d.ag.created.toLocaleString(), v: d.ag.created, t: viewMode === "MTD" ? null : ANN_TGT.agents * pF },
+          { label: "AI Efficiency", value: d.ag.eff.toFixed(0) + "%", v: d.ag.eff, t: viewMode === "MTD" ? null : ANN_TGT.aiEff }
         ]
       }) : ''}
     </div>`;
@@ -1544,8 +1551,8 @@ function render() {
     const conCols = viewMode === "FORECAST" ? 2 : 4;
     html += `<div class="hero-grid" style="grid-template-columns:repeat(${conCols},1fr)">
       ${heroCard({ label: "CONSULTING REVENUE", value: fmtM(d.rev.consulting), actual: d.rev.consulting, mtdTgt: getMTD("Rev Consulting ($M)", mName), ytdTgt: getMTDYTD("Rev Consulting ($M)"), annTgt: ANN_TGT.revConsulting, forecast: d.rev.forecastConsulting, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "CONSULTING MARGIN", value: d.mg.conM.toFixed(0) + "%", actual: d.mg.conM, mtdTgt: getMTD("Consulting Margin %", mName) || 37, ytdTgt: getMTDYTD("Consulting Margin %") || 37, annTgt: ANN_TGT.conM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
-      ${viewMode !== "FORECAST" ? heroCard({ label: "CONSULTING UTILIZATION", value: d.mg.conU.toFixed(0) + "%", actual: d.mg.conU, mtdTgt: getMTD("Consulting Util %", mName) || ANN_TGT.conU, ytdTgt: getMTDYTD("Consulting Util %") || ANN_TGT.conU, annTgt: ANN_TGT.conU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
+      ${heroCard({ label: "CONSULTING MARGIN", value: d.mg.conM.toFixed(0) + "%", actual: d.mg.conM, mtdTgt: getMTD("Consulting Margin %", mName), ytdTgt: getMTDYTD("Consulting Margin %") || 37, annTgt: ANN_TGT.conM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "CONSULTING UTILIZATION", value: d.mg.conU.toFixed(0) + "%", actual: d.mg.conU, mtdTgt: getMTD("Consulting Util %", mName), ytdTgt: getMTDYTD("Consulting Util %") || ANN_TGT.conU, annTgt: ANN_TGT.conU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
       ${viewMode !== "FORECAST" ? heroCard({ label: "ACV", value: fmtM(d.acv.newLogo), actual: d.acv.newLogo, mtdTgt: getMTD("ACV New Logos ($M)", mName), ytdTgt: getMTDYTD("ACV New Logos ($M)"), annTgt: ANN_TGT.acvNewLogo, unit: "$M", mIdx: currentMonth }) : ''}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
@@ -1556,9 +1563,9 @@ function render() {
     const msCols = viewMode === "FORECAST" ? 2 : 5;
     html += `<div class="hero-grid" style="grid-template-columns:repeat(${msCols},1fr)">
       ${heroCard({ label: "MS REVENUE", value: fmtM(d.rev.ms), actual: d.rev.ms, mtdTgt: getMTD("Rev MS ($M)", mName), ytdTgt: getMTDYTD("Rev MS ($M)"), annTgt: ANN_TGT.revMS, forecast: d.rev.forecastMS, unit: "$M", mIdx: currentMonth, isRevOrMargin: true })}
-      ${heroCard({ label: "MS MARGIN", value: d.mg.msM.toFixed(0) + "%", actual: d.mg.msM, mtdTgt: getMTD("MS Margin %", mName) || 23, ytdTgt: getMTDYTD("MS Margin %") || 23, annTgt: ANN_TGT.msM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
-      ${viewMode !== "FORECAST" ? heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: getMTD("MS Renewal %", mName) || 60, ytdTgt: getMTDYTD("MS Renewal %") || 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
-      ${viewMode !== "FORECAST" ? heroCard({ label: "MS UTILIZATION", value: d.mg.msU.toFixed(0) + "%", actual: d.mg.msU, mtdTgt: getMTD("MS Util %", mName) || ANN_TGT.msU, ytdTgt: getMTDYTD("MS Util %") || ANN_TGT.msU, annTgt: ANN_TGT.msU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
+      ${heroCard({ label: "MS MARGIN", value: d.mg.msM.toFixed(0) + "%", actual: d.mg.msM, mtdTgt: getMTD("MS Margin %", mName), ytdTgt: getMTDYTD("MS Margin %") || 23, annTgt: ANN_TGT.msM, unit: "%", isAvg: true, mIdx: currentMonth, isRevOrMargin: true })}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "MS RENEWAL %", value: d.msRenewal.toFixed(0) + "%", actual: d.msRenewal, mtdTgt: getMTD("MS Renewal %", mName), ytdTgt: getMTDYTD("MS Renewal %") || 60, annTgt: ANN_TGT.msRenewal, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
+      ${viewMode !== "FORECAST" ? heroCard({ label: "MS UTILIZATION", value: d.mg.msU.toFixed(0) + "%", actual: d.mg.msU, mtdTgt: getMTD("MS Util %", mName), ytdTgt: getMTDYTD("MS Util %") || ANN_TGT.msU, annTgt: ANN_TGT.msU, unit: "%", isAvg: true, mIdx: currentMonth, noPct: true }) : ''}
       ${viewMode !== "FORECAST" ? heroCard({ label: "MS ACV", value: fmtM(d.acv.total), actual: d.acv.total, mtdTgt: getMTD("ACV Total ($M)", mName), ytdTgt: getMTDYTD("ACV Total ($M)"), annTgt: ANN_TGT.acvTotal, unit: "$M", mIdx: currentMonth }) : ''}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
