@@ -1185,49 +1185,64 @@ function heroCard(opts) {
   if (viewMode === "MTD") {
     target = noMTDTarget ? null : mtdTgt;
     pct = target ? (actual / target) * 100 : null;
-    displayForecast = forecast || (isAvg ? actual : (mIdx > 0 ? actual / (mIdx + 1) * 12 : actual * 12));
-    forecastLabel = "Run-rate";
+    displayForecast = null;
+    forecastLabel = "";
   } else if (viewMode === "YTD") {
-    target = ytdTgt || (isAvg ? annTgt : annTgt * (mIdx + 1) / 12);
-    pct = target ? (actual / target) * 100 : 0;
-    displayForecast = forecast || (isAvg ? actual : (mIdx > 0 ? actual / (mIdx + 1) * 12 : actual * 12));
-    forecastLabel = "Run-rate";
+    // Only use target if explicitly provided from Excel — never fabricate from annual
+    target = ytdTgt || null;
+    pct = target ? (actual / target) * 100 : null;
+    displayForecast = null;
+    forecastLabel = "";
   } else {
-    // FORECAST view - use the forecast value directly
-    displayForecast = forecast || (isAvg ? actual : (mIdx > 0 ? actual / (mIdx + 1) * 12 : actual * 12));
-    target = annTgt;
-    pct = target ? (displayForecast / target) * 100 : 0;
+    // FORECAST view — only use real forecast from Excel, never calculate run-rate
+    displayForecast = forecast || null;
+    target = annTgt || null;
+    pct = (displayForecast && target) ? (displayForecast / target) * 100 : null;
     forecastLabel = "Forecast";
   }
   
-  const color = noMTDTarget ? "neutral" : pctColor(pct, low);
-  const status = noMTDTarget ? "—" : statusText(pct, low);
-  
-  const gap = displayForecast - annTgt;
-  const gapStr = unit === "$M" ? (gap >= 0 ? "+" + fmtM(gap) : "-" + fmtM(Math.abs(gap))) :
+  const color = (noMTDTarget || pct == null) ? "neutral" : pctColor(pct, low);
+  const status = (noMTDTarget || pct == null) ? "—" : statusText(pct, low);
+
+  const hasGap = displayForecast != null && annTgt != null;
+  const gap = hasGap ? displayForecast - annTgt : null;
+  const gapStr = gap == null ? "—" :
+                 unit === "$M" ? (gap >= 0 ? "+" + fmtM(gap) : "-" + fmtM(Math.abs(gap))) :
                  unit === "%" ? (gap >= 0 ? "+" + gap.toFixed(1) + "%" : gap.toFixed(1) + "%") :
                  (gap >= 0 ? "+" + gap.toFixed(0) : gap.toFixed(0));
-  
-  const forecastStr = unit === "$M" ? fmtM(displayForecast) : unit === "%" ? displayForecast.toFixed(0) + "%" : displayForecast.toLocaleString();
-  const annTgtStr = unit === "$M" ? fmtM(annTgt) : unit === "%" ? annTgt + "%" : annTgt.toLocaleString();
-  
-  // Build target line — noPct cards (utilization, renewal) omit "X% vs target"
-  const fmtTgt = t => unit === "$M" ? fmtM(t) : t.toFixed(0) + (unit === "%" ? "%" : "");
+
+  const forecastStr = displayForecast == null ? "—" :
+                      unit === "$M" ? fmtM(displayForecast) :
+                      unit === "%" ? displayForecast.toFixed(0) + "%" : displayForecast.toLocaleString();
+  const annTgtStr = annTgt == null ? "—" :
+                    unit === "$M" ? fmtM(annTgt) :
+                    unit === "%" ? annTgt + "%" : annTgt.toLocaleString();
+
+  // Build target line — only show when real data exists from Excel
+  const fmtTgt = t => t == null ? "—" : unit === "$M" ? fmtM(t) : t.toFixed(0) + (unit === "%" ? "%" : "");
   let targetLineStr;
   if (viewMode === "YTD") {
-    targetLineStr = noPct
-      ? `YTD target: ${fmtTgt(target)}`
-      : `YTD target: ${fmtTgt(target)} · ${pct.toFixed(0)}% vs YTD target`;
+    if (target == null) {
+      targetLineStr = "";
+    } else {
+      targetLineStr = noPct
+        ? `YTD target: ${fmtTgt(target)}`
+        : `YTD target: ${fmtTgt(target)} · ${pct.toFixed(0)}% vs YTD target`;
+    }
   } else if (viewMode === "FORECAST") {
-    if (isRevOrMargin) {
+    if (displayForecast == null && annTgt == null) {
+      targetLineStr = "";
+    } else if (isRevOrMargin) {
       targetLineStr = `Forecast: ${forecastStr} vs ${annTgtStr} Annual target`;
     } else {
       targetLineStr = noPct
         ? `Forecast: ${forecastStr}`
-        : `Forecast: ${forecastStr} · ${pct.toFixed(0)}% vs Annual target`;
+        : pct != null
+          ? `Forecast: ${forecastStr} · ${pct.toFixed(0)}% vs Annual target`
+          : `Forecast: ${forecastStr}`;
     }
   } else {
-    // MTD — only show target line when a monthly target exists
+    // MTD — only show target line when a monthly target exists in Excel
     if (noMTDTarget) {
       targetLineStr = "";
     } else {
@@ -1262,14 +1277,14 @@ function heroCard(opts) {
     }).join("");
   }
   
-  // Don't show % badge for noPct cards, or in Forecast mode for rev/margin, or MTD with no monthly target
-  const showPct = !noPct && !noMTDTarget && !(viewMode === "FORECAST" && isRevOrMargin);
-  
-  // Only show forecast/run-rate section in Forecast view
-  const showForecastSection = viewMode === "FORECAST";
-  
-  // In FORECAST mode show the forecast figure prominently, not the YTD actual
-  const displayValue = (viewMode === "FORECAST" && isRevOrMargin) ? forecastStr : value;
+  // Don't show % badge for noPct cards, or in Forecast mode for rev/margin, or MTD with no monthly target, or when pct is unavailable
+  const showPct = !noPct && !noMTDTarget && pct != null && !(viewMode === "FORECAST" && isRevOrMargin);
+
+  // Only show forecast section in Forecast view when real forecast data exists
+  const showForecastSection = viewMode === "FORECAST" && (displayForecast != null || annTgt != null);
+
+  // In FORECAST mode show the forecast figure prominently only when data exists
+  const displayValue = (viewMode === "FORECAST" && isRevOrMargin && displayForecast != null) ? forecastStr : value;
 
   return `<div class="hero-card">
     <div class="hero-top">
@@ -1289,17 +1304,17 @@ function heroCard(opts) {
         <div class="forecast-item">
           <div class="forecast-label">${forecastLabel}</div>
           <div class="forecast-value">${forecastStr}</div>
-          <div class="forecast-sub">${forecastLabel === "Forecast" ? "Updated" : "Projected"}</div>
+          <div class="forecast-sub">Updated</div>
         </div>
         <div class="forecast-item">
           <div class="forecast-label">Annual Tgt</div>
-          <div class="forecast-value ${gap < 0 ? 'behind' : 'on-track'}">${annTgtStr}</div>
-          <div class="forecast-sub">${gap < 0 ? 'BEHIND' : 'ON TRACK'}</div>
+          <div class="forecast-value ${gap == null ? '' : gap < 0 ? 'behind' : 'on-track'}">${annTgtStr}</div>
+          <div class="forecast-sub">${gap == null ? '—' : gap < 0 ? 'BEHIND' : 'ON TRACK'}</div>
         </div>
       </div>
       <div class="gap-row">
         <span class="gap-label">GAP</span>
-        <span class="gap-value ${gap >= 0 ? 'positive' : ''}">${gapStr}</span>
+        <span class="gap-value ${gap != null && gap >= 0 ? 'positive' : ''}">${gapStr}</span>
       </div>
     </div>` : ''}
     ${subsHtml ? `<div class="hero-subs">${subsHtml}</div>` : ''}

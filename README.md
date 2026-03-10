@@ -49,6 +49,12 @@ az staticwebapp create \
 1. Update the `EMBEDDED_DATA` object in `index.html` with new values
 2. Or connect to SharePoint/Microsoft 365 MCP for live data (requires Azure deployment)
 
+## Data Integrity Rules (IMPORTANT)
+
+- **Never fabricate forecast values.** If no `Forecast` column value exists in the Excel for a metric, show `—` — do NOT calculate run-rate (`actual / months * 12`) as a substitute.
+- **Never fabricate targets.** If no YTD target exists in the Excel, show no target line — do NOT prorate the annual target (`annTgt * (mIdx+1) / 12`) as a substitute.
+- All forecast and target values must come directly from the Excel data. Only `annTgt` values hardcoded in `ANN_TGT` are acceptable as they represent known business targets.
+
 ## Tech Stack
 
 - Vanilla HTML/CSS/JavaScript
