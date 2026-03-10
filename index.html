@@ -978,7 +978,6 @@ const ANN_TGT = {
   marginOverall: 30, util: 84, conM: 42, conU: 82, msM: 27, msU: 88, msRenewal: 75,
   agents: 5000, arr: 10, aiEff: 20,
   csat: 5, esat: 5, vol: 15, reg: 7, mgr: 90, lat: 50, div: 80,
-  scRev: 10, scPipe: 15, scCust: 5, scThought: 5
 };
 
 let DATA = null;
@@ -1074,6 +1073,7 @@ function getAvg(name, months) {
 
 function getMTD(name, month) { return DATA?.mtdTargets[name]?.[month] || null; }
 function getMTDYTD(name) { return DATA?.mtdTargets[name]?.YTD || null; }
+function getAnnTgt(name) { return DATA?.metrics[name]?.target || null; }
 
 function getMonths() {
   if (viewMode === "MTD") return [MONTHS[currentMonth]];
@@ -1565,10 +1565,10 @@ function render() {
             { label: "Regrettable Attrition", val: d.pp.reg, tgt: nt ?? ANN_TGT.reg, unit: "%", low: true }
           ])}
           ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
-            { label: "SC Strategy Revenue", val: d.sc.rev, tgt: nt ?? ANN_TGT.scRev, unit: "$M" },
-            { label: "Weighted Pipeline", val: d.sc.pipe, tgt: nt ?? ANN_TGT.scPipe, unit: "$M" },
-            { label: "Referenceable Customers", val: d.sc.cust, tgt: nt ?? ANN_TGT.scCust, unit: "" },
-            { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: nt ?? ANN_TGT.scThought, unit: "" }
+            { label: "SC Strategy Revenue", val: d.sc.rev, tgt: viewMode === "MTD" ? null : getAnnTgt("SC Revenue ($M)"), unit: "$M" },
+            { label: "Weighted Pipeline", val: d.sc.pipe, tgt: viewMode === "MTD" ? null : getAnnTgt("SC Pipeline ($M)"), unit: "$M" },
+            { label: "Referenceable Customers", val: d.sc.cust, tgt: viewMode === "MTD" ? null : getAnnTgt("SC Customers"), unit: "" },
+            { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: viewMode === "MTD" ? null : getAnnTgt("SC Thought Leadership"), unit: "" }
           ])}
         </div>`;
       }
@@ -1623,18 +1623,18 @@ function render() {
   if (activeTab === "sc") {
     const scTgt = n => viewMode !== "MTD" ? n : null;
     html += `<div class="hero-grid">
-      ${heroCard({ label: "SC STRATEGY REVENUE", value: fmtM(d.sc.rev), actual: d.sc.rev, mtdTgt: null, annTgt: ANN_TGT.scRev, unit: "$M", mIdx: currentMonth })}
-      ${heroCard({ label: "WEIGHTED PIPELINE", value: fmtM(d.sc.pipe), actual: d.sc.pipe, mtdTgt: null, annTgt: ANN_TGT.scPipe, unit: "$M", mIdx: currentMonth })}
-      ${heroCard({ label: "REFERENCEABLE CUSTOMERS", value: d.sc.cust.toFixed(0), actual: d.sc.cust, mtdTgt: null, annTgt: ANN_TGT.scCust, unit: "", mIdx: currentMonth })}
-      ${heroCard({ label: "THOUGHT LEADERSHIP", value: d.sc.thought.toFixed(0), actual: d.sc.thought, mtdTgt: null, annTgt: ANN_TGT.scThought, unit: "", mIdx: currentMonth })}
+      ${heroCard({ label: "SC STRATEGY REVENUE", value: fmtM(d.sc.rev), actual: d.sc.rev, mtdTgt: null, annTgt: getAnnTgt("SC Revenue ($M)"), unit: "$M", mIdx: currentMonth })}
+      ${heroCard({ label: "WEIGHTED PIPELINE", value: fmtM(d.sc.pipe), actual: d.sc.pipe, mtdTgt: null, annTgt: getAnnTgt("SC Pipeline ($M)"), unit: "$M", mIdx: currentMonth })}
+      ${heroCard({ label: "REFERENCEABLE CUSTOMERS", value: d.sc.cust.toFixed(0), actual: d.sc.cust, mtdTgt: null, annTgt: getAnnTgt("SC Customers"), unit: "", mIdx: currentMonth })}
+      ${heroCard({ label: "THOUGHT LEADERSHIP", value: d.sc.thought.toFixed(0), actual: d.sc.thought, mtdTgt: null, annTgt: getAnnTgt("SC Thought Leadership"), unit: "", mIdx: currentMonth })}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">SC Strategy OKR Detail</span></div>`;
     html += `<div class="okr-grid" style="grid-template-columns:1fr">
       ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
-        { label: "SC Strategy Revenue", val: d.sc.rev, tgt: scTgt(ANN_TGT.scRev * (currentMonth + 1) / 12), unit: "$M" },
-        { label: "Weighted Pipeline", val: d.sc.pipe, tgt: scTgt(ANN_TGT.scPipe * (currentMonth + 1) / 12), unit: "$M" },
-        { label: "Referenceable Customers", val: d.sc.cust, tgt: scTgt(ANN_TGT.scCust * (currentMonth + 1) / 12), unit: "" },
-        { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: scTgt(ANN_TGT.scThought * (currentMonth + 1) / 12), unit: "" }
+        { label: "SC Strategy Revenue", val: d.sc.rev, tgt: null, unit: "$M" },
+        { label: "Weighted Pipeline", val: d.sc.pipe, tgt: null, unit: "$M" },
+        { label: "Referenceable Customers", val: d.sc.cust, tgt: null, unit: "" },
+        { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: null, unit: "" }
       ])}
     </div>`;
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
