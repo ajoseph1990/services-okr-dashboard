@@ -1303,6 +1303,7 @@ function heroCard(opts) {
 
 // ===== OKR CARD =====
 function okrCard(num, title, colorClass, metrics) {
+  if (!metrics.length) return '';
   const metricsHtml = metrics.map(m => {
     const pct = m.tgt ? (m.val / m.tgt) * 100 : 0;
     const color = pctColor(pct, m.low);
@@ -1480,7 +1481,7 @@ function render() {
         subs: [
           { label: "New Logos", value: fmtM(d.acv.newLogo), v: d.acv.newLogo, t: viewMode === "YTD" ? getMTDYTD("ACV New Logos ($M)") : viewMode === "MTD" ? getMTD("ACV New Logos ($M)", mName) : ANN_TGT.acvNewLogo / 12 },
           { label: "Upsell", value: fmtM(d.acv.upsell), v: d.acv.upsell, t: viewMode === "YTD" ? getMTDYTD("ACV Upsell ($M)") : viewMode === "MTD" ? getMTD("ACV Upsell ($M)", mName) : ANN_TGT.acvUpsell / 12 },
-          { label: "Pipeline Carry FY'27", value: d.acv.pipelineCarry.toFixed(0) + "%", v: d.acv.pipelineCarry, t: ANN_TGT.pipelineCarry }
+          ...(viewMode !== "MTD" ? [{ label: "Pipeline Carry FY'27", value: d.acv.pipelineCarry.toFixed(0) + "%", v: d.acv.pipelineCarry, t: ANN_TGT.pipelineCarry }] : [])
         ]
       }) : ''}
       ${heroCard({ 
@@ -1500,8 +1501,8 @@ function render() {
           { label: "MS Margin", value: d.mg.msM.toFixed(0) + "%", v: d.mg.msM, t: viewMode === "MTD" ? getMTD("MS Margin %", mName) : ANN_TGT.msM }
         ]
       })}
-      ${viewMode !== "FORECAST" ? heroCard({ 
-        label: "AGENTIC ARR<br>FROM SVCS DEALS", 
+      ${viewMode === "YTD" ? heroCard({
+        label: "AGENTIC ARR<br>FROM SVCS DEALS",
         value: fmtK(d.ag.arr), 
         actual: d.ag.arr, 
         mtdTgt: getMTD("Agentic ARR ($M)", mName), 
@@ -1518,29 +1519,30 @@ function render() {
     
     if (activeTab === "overview") {
       html += `<div class="section-divider"><span class="divider-text">OKR Detail by Objective</span></div>`;
+      const isMTD = viewMode === "MTD";
       html += `<div class="okr-grid">
         ${okrCard("OKR 1", "Generate $345M in Services Revenue", "blue", [
-          { label: "Consulting New Offerings %", val: d.rev.consultingNew, tgt: ANN_TGT.consultingNew, unit: "%" },
-          { label: "Pipeline Carry FY2027", val: d.acv.pipelineCarry, tgt: ANN_TGT.pipelineCarry, unit: "%" },
+          ...(!isMTD ? [{ label: "Consulting New Offerings %", val: d.rev.consultingNew, tgt: ANN_TGT.consultingNew, unit: "%" }] : []),
+          ...(!isMTD ? [{ label: "Pipeline Carry FY2027", val: d.acv.pipelineCarry, tgt: ANN_TGT.pipelineCarry, unit: "%" }] : []),
           { label: "Overall Utilization", val: d.mg.util, tgt: ANN_TGT.util, unit: "%" }
         ])}
-        ${okrCard("OKR 2", "Services as Agentic Software", "teal", [
+        ${!isMTD ? okrCard("OKR 2", "Services as Agentic Software", "teal", [
           { label: "Agents Created", val: d.ag.created, tgt: ANN_TGT.agents, unit: "" },
           { label: "Agentic ARR", val: d.ag.arr, tgt: ANN_TGT.arr, unit: "$M" },
           { label: "AI Efficiency Improvement", val: d.ag.eff, tgt: ANN_TGT.aiEff, unit: "%" }
-        ])}
+        ]) : ''}
         ${okrCard("OKR 3", "Customer & Employee Satisfaction", "green", [
-          { label: "CSAT Improvement", val: d.pp.csat, tgt: ANN_TGT.csat, unit: "%" },
-          { label: "ESAT Improvement", val: d.pp.esat, tgt: ANN_TGT.esat, unit: "%" },
+          ...(!isMTD ? [{ label: "CSAT Improvement", val: d.pp.csat, tgt: ANN_TGT.csat, unit: "%" }] : []),
+          ...(!isMTD ? [{ label: "ESAT Improvement", val: d.pp.esat, tgt: ANN_TGT.esat, unit: "%" }] : []),
           { label: "Voluntary Attrition", val: d.pp.vol, tgt: ANN_TGT.vol, unit: "%", low: true },
           { label: "Regrettable Attrition", val: d.pp.reg, tgt: ANN_TGT.reg, unit: "%", low: true }
         ])}
-        ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
+        ${!isMTD ? okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
           { label: "SC Strategy Revenue", val: d.sc.rev, tgt: ANN_TGT.scRev, unit: "$M" },
           { label: "Weighted Pipeline", val: d.sc.pipe, tgt: ANN_TGT.scPipe, unit: "$M" },
           { label: "Referenceable Customers", val: d.sc.cust, tgt: ANN_TGT.scCust, unit: "" },
           { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: ANN_TGT.scThought, unit: "" }
-        ])}
+        ]) : ''}
       </div>`;
       html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
       html += dealSection(d.deals, d.pipeline, d.bonus, viewMode === "FORECAST");
@@ -1578,8 +1580,8 @@ function render() {
     const ppMonths = ppMode === "MTD" ? [mName] : MONTHS.slice(0, currentMonth + 1);
     const pp = compute(ppMonths).pp;
     html += `<div class="hero-grid">
-      ${heroCard({ label: "CSAT IMPROVEMENT", value: pp.csat.toFixed(1) + "%", actual: pp.csat, mtdTgt: 2, ytdTgt: getMTDYTD("CSAT %"), annTgt: ANN_TGT.csat, unit: "%", isAvg: true, mIdx: currentMonth })}
-      ${heroCard({ label: "ESAT IMPROVEMENT", value: pp.esat.toFixed(1) + "%", actual: pp.esat, mtdTgt: 1.8, ytdTgt: getMTDYTD("ESAT %"), annTgt: ANN_TGT.esat, unit: "%", isAvg: true, mIdx: currentMonth })}
+      ${ppMode !== "MTD" ? heroCard({ label: "CSAT IMPROVEMENT", value: pp.csat.toFixed(1) + "%", actual: pp.csat, mtdTgt: 2, ytdTgt: getMTDYTD("CSAT %"), annTgt: ANN_TGT.csat, unit: "%", isAvg: true, mIdx: currentMonth }) : ''}
+      ${ppMode !== "MTD" ? heroCard({ label: "ESAT IMPROVEMENT", value: pp.esat.toFixed(1) + "%", actual: pp.esat, mtdTgt: 1.8, ytdTgt: getMTDYTD("ESAT %"), annTgt: ANN_TGT.esat, unit: "%", isAvg: true, mIdx: currentMonth }) : ''}
       ${heroCard({ label: "VOLUNTARY ATTRITION", value: pp.vol.toFixed(1) + "%", actual: pp.vol, mtdTgt: 15, ytdTgt: getMTDYTD("Voluntary Attrition %"), annTgt: ANN_TGT.vol, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
       ${heroCard({ label: "REGRETTABLE ATTRITION", value: pp.reg.toFixed(1) + "%", actual: pp.reg, mtdTgt: 7, ytdTgt: getMTDYTD("Regrettable Attrition %"), annTgt: ANN_TGT.reg, unit: "%", low: true, isAvg: true, mIdx: currentMonth })}
     </div>`;
@@ -1591,21 +1593,23 @@ function render() {
   }
   
   if (activeTab === "sc") {
-    html += `<div class="hero-grid">
-      ${heroCard({ label: "SC STRATEGY REVENUE", value: fmtM(d.sc.rev), actual: d.sc.rev, mtdTgt: 0.7, annTgt: ANN_TGT.scRev, unit: "$M", mIdx: currentMonth })}
-      ${heroCard({ label: "WEIGHTED PIPELINE", value: fmtM(d.sc.pipe), actual: d.sc.pipe, mtdTgt: 1, annTgt: ANN_TGT.scPipe, unit: "$M", mIdx: currentMonth })}
-      ${heroCard({ label: "REFERENCEABLE CUSTOMERS", value: d.sc.cust.toFixed(0), actual: d.sc.cust, mtdTgt: 1, annTgt: ANN_TGT.scCust, unit: "", mIdx: currentMonth })}
-      ${heroCard({ label: "THOUGHT LEADERSHIP", value: d.sc.thought.toFixed(0), actual: d.sc.thought, mtdTgt: 1, annTgt: ANN_TGT.scThought, unit: "", mIdx: currentMonth })}
-    </div>`;
-    html += `<div class="section-divider"><span class="divider-text">SC Strategy OKR Detail</span></div>`;
-    html += `<div class="okr-grid" style="grid-template-columns:1fr">
-      ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
-        { label: "SC Strategy Revenue", val: d.sc.rev, tgt: ANN_TGT.scRev * (currentMonth + 1) / 12, unit: "$M" },
-        { label: "Weighted Pipeline", val: d.sc.pipe, tgt: ANN_TGT.scPipe * (currentMonth + 1) / 12, unit: "$M" },
-        { label: "Referenceable Customers", val: d.sc.cust, tgt: ANN_TGT.scCust * (currentMonth + 1) / 12, unit: "" },
-        { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: ANN_TGT.scThought * (currentMonth + 1) / 12, unit: "" }
-      ])}
-    </div>`;
+    if (viewMode !== "MTD") {
+      html += `<div class="hero-grid">
+        ${heroCard({ label: "SC STRATEGY REVENUE", value: fmtM(d.sc.rev), actual: d.sc.rev, annTgt: ANN_TGT.scRev, unit: "$M", mIdx: currentMonth })}
+        ${heroCard({ label: "WEIGHTED PIPELINE", value: fmtM(d.sc.pipe), actual: d.sc.pipe, annTgt: ANN_TGT.scPipe, unit: "$M", mIdx: currentMonth })}
+        ${heroCard({ label: "REFERENCEABLE CUSTOMERS", value: d.sc.cust.toFixed(0), actual: d.sc.cust, annTgt: ANN_TGT.scCust, unit: "", mIdx: currentMonth })}
+        ${heroCard({ label: "THOUGHT LEADERSHIP", value: d.sc.thought.toFixed(0), actual: d.sc.thought, annTgt: ANN_TGT.scThought, unit: "", mIdx: currentMonth })}
+      </div>`;
+      html += `<div class="section-divider"><span class="divider-text">SC Strategy OKR Detail</span></div>`;
+      html += `<div class="okr-grid" style="grid-template-columns:1fr">
+        ${okrCard("OKR 4", "Launch Supply Chain Strategy Practice", "orange", [
+          { label: "SC Strategy Revenue", val: d.sc.rev, tgt: ANN_TGT.scRev * (currentMonth + 1) / 12, unit: "$M" },
+          { label: "Weighted Pipeline", val: d.sc.pipe, tgt: ANN_TGT.scPipe * (currentMonth + 1) / 12, unit: "$M" },
+          { label: "Referenceable Customers", val: d.sc.cust, tgt: ANN_TGT.scCust * (currentMonth + 1) / 12, unit: "" },
+          { label: "Thought Leadership Pieces", val: d.sc.thought, tgt: ANN_TGT.scThought * (currentMonth + 1) / 12, unit: "" }
+        ])}
+      </div>`;
+    }
     html += `<div class="section-divider"><span class="divider-text">Deal Intelligence</span></div>`;
     html += dealSection(filterBySL(d.deals, "Strategy"), filterBySL(d.pipeline, "Strategy"), filterBySL(d.bonus, "Strategy"), viewMode === "FORECAST");
   }
