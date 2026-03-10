@@ -393,6 +393,139 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-text { font-size: 14px; color: #374151; font-weight: 500; }
+
+/* ===== AI AGENT ===== */
+.agent-fab {
+  position: fixed; bottom: 28px; right: 28px; z-index: 1000;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: #065f46; border: none; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(6,95,70,0.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.agent-fab:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(6,95,70,0.5); }
+.agent-fab svg { color: white; width: 24px; height: 24px; }
+
+.agent-panel {
+  position: fixed; bottom: 92px; right: 28px; z-index: 1000;
+  width: 400px; height: 560px;
+  background: white; border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.16);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: scale(0.9) translateY(20px); opacity: 0;
+  pointer-events: none; transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.agent-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+
+.agent-header {
+  background: #065f46; padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.agent-header-icon {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.agent-header-icon svg { width: 16px; height: 16px; color: white; }
+.agent-header-title { flex: 1; }
+.agent-header-title h3 { font-size: 14px; font-weight: 700; color: white; }
+.agent-header-title p { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+.agent-close {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: rgba(255,255,255,0.8); transition: color 0.15s;
+}
+.agent-close:hover { color: white; }
+.agent-close svg { width: 18px; height: 18px; }
+
+.agent-key-bar {
+  background: #f0fdf4; border-bottom: 1px solid #d1fae5;
+  padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.agent-key-bar input {
+  flex: 1; font-size: 12px; border: 1px solid #d1d5db; border-radius: 6px;
+  padding: 5px 8px; font-family: monospace; background: white; outline: none;
+}
+.agent-key-bar input:focus { border-color: #065f46; }
+.agent-key-btn {
+  font-size: 11px; font-weight: 600; padding: 5px 10px;
+  background: #065f46; color: white; border: none; border-radius: 6px; cursor: pointer;
+}
+.agent-key-label { font-size: 11px; color: #374151; white-space: nowrap; }
+.agent-key-saved { font-size: 11px; color: #065f46; font-weight: 600; }
+
+.agent-messages {
+  flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.agent-msg { display: flex; gap: 8px; }
+.agent-msg.user { flex-direction: row-reverse; }
+.agent-msg-bubble {
+  max-width: 82%; padding: 10px 12px; border-radius: 12px;
+  font-size: 13px; line-height: 1.5;
+}
+.agent-msg.user .agent-msg-bubble {
+  background: #065f46; color: white; border-bottom-right-radius: 4px;
+}
+.agent-msg.bot .agent-msg-bubble {
+  background: #f3f4f6; color: #1f2937; border-bottom-left-radius: 4px;
+}
+.agent-msg-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.agent-msg.bot .agent-msg-avatar { background: #d1fae5; color: #065f46; font-weight: 700; }
+.agent-msg.user .agent-msg-avatar { background: #065f46; color: white; font-weight: 700; }
+
+.agent-msg-bubble p { margin-bottom: 6px; }
+.agent-msg-bubble p:last-child { margin-bottom: 0; }
+.agent-msg-bubble strong { font-weight: 700; }
+.agent-msg-bubble ul, .agent-msg-bubble ol { padding-left: 16px; margin: 4px 0; }
+.agent-msg-bubble li { margin-bottom: 2px; }
+.agent-msg-bubble table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+.agent-msg-bubble th { background: #e5e7eb; padding: 4px 8px; text-align: left; font-weight: 600; }
+.agent-msg-bubble td { padding: 3px 8px; border-bottom: 1px solid #e5e7eb; }
+
+.agent-typing { display: flex; gap: 4px; padding: 4px 0; align-items: center; }
+.agent-typing span {
+  width: 7px; height: 7px; border-radius: 50%; background: #9ca3af;
+  animation: agentDot 1.2s infinite;
+}
+.agent-typing span:nth-child(2) { animation-delay: 0.2s; }
+.agent-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes agentDot { 0%,60%,100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+.agent-suggestions {
+  padding: 0 14px 10px; display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0;
+}
+.agent-suggestion {
+  font-size: 11px; padding: 5px 10px; border: 1px solid #d1d5db;
+  border-radius: 20px; background: white; cursor: pointer; color: #374151;
+  transition: all 0.15s; white-space: nowrap;
+}
+.agent-suggestion:hover { border-color: #065f46; color: #065f46; background: #f0fdf4; }
+
+.agent-input-row {
+  padding: 10px 12px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; flex-shrink: 0;
+  background: white;
+}
+.agent-input {
+  flex: 1; border: 1px solid #d1d5db; border-radius: 22px;
+  padding: 9px 14px; font-size: 13px; font-family: inherit; outline: none; resize: none;
+  max-height: 80px; overflow-y: auto; line-height: 1.4;
+}
+.agent-input:focus { border-color: #065f46; }
+.agent-send {
+  width: 36px; height: 36px; border-radius: 50%; background: #065f46;
+  border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; align-self: flex-end; transition: background 0.15s;
+}
+.agent-send:hover { background: #047857; }
+.agent-send:disabled { background: #d1d5db; cursor: default; }
+.agent-send svg { width: 16px; height: 16px; color: white; }
+
+.agent-no-data {
+  font-size: 12px; color: #9ca3af; text-align: center; padding: 20px 14px;
+  line-height: 1.6;
+}
 </style>
 </head>
 <body>
@@ -1648,6 +1781,410 @@ const _ORIGINAL_EMBEDDED_DATA = JSON.parse(JSON.stringify(EMBEDDED_DATA));
 
 init();
 initMSAL();
+
+// ===== AI AGENT =====
+(function() {
+
+  // --- DOM ---
+  const fabHtml = `
+  <button class="agent-fab" id="agentFab" title="Ask AI">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+    </svg>
+  </button>
+  <div class="agent-panel" id="agentPanel">
+    <div class="agent-header">
+      <div class="agent-header-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+      </div>
+      <div class="agent-header-title">
+        <h3>Aether Analytics Agent</h3>
+        <p id="agentStatus">Ask me anything about your dashboard</p>
+      </div>
+      <button class="agent-close" id="agentClose">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="agent-key-bar" id="agentKeyBar">
+      <span class="agent-key-label">Claude API Key:</span>
+      <input type="password" id="agentKeyInput" placeholder="sk-ant-..." autocomplete="off"/>
+      <button class="agent-key-btn" id="agentKeySave">Save</button>
+    </div>
+    <div class="agent-messages" id="agentMessages">
+      <div class="agent-no-data" id="agentWelcome">
+        👋 Hi! I have full access to your FY2025 dashboard data.<br><br>
+        Ask me about revenue, margins, pipeline, people metrics, or anything across the tabs.
+      </div>
+    </div>
+    <div class="agent-suggestions" id="agentSuggestions">
+      <button class="agent-suggestion">How is revenue tracking vs target?</button>
+      <button class="agent-suggestion">What's our services margin gap?</button>
+      <button class="agent-suggestion">Show me People & Culture summary</button>
+      <button class="agent-suggestion">Which deals are in the pipeline?</button>
+      <button class="agent-suggestion">How is Consulting performing?</button>
+    </div>
+    <div class="agent-input-row">
+      <textarea class="agent-input" id="agentInput" placeholder="Ask about revenue, margins, pipeline..." rows="1"></textarea>
+      <button class="agent-send" id="agentSend">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+      </button>
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', fabHtml);
+
+  const fab        = document.getElementById('agentFab');
+  const panel      = document.getElementById('agentPanel');
+  const closeBtn   = document.getElementById('agentClose');
+  const messages   = document.getElementById('agentMessages');
+  const input      = document.getElementById('agentInput');
+  const sendBtn    = document.getElementById('agentSend');
+  const keyBar     = document.getElementById('agentKeyBar');
+  const keyInput   = document.getElementById('agentKeyInput');
+  const keySave    = document.getElementById('agentKeySave');
+  const statusEl   = document.getElementById('agentStatus');
+  const suggestions= document.getElementById('agentSuggestions');
+
+  // --- API key management ---
+  let apiKey = localStorage.getItem('agentApiKey') || '';
+  function updateKeyUI() {
+    if (apiKey) {
+      keyBar.innerHTML = `<span class="agent-key-saved">✓ API key saved</span>
+        <button class="agent-key-btn" id="agentKeyChange" style="background:#6b7280">Change</button>`;
+      document.getElementById('agentKeyChange').onclick = () => {
+        apiKey = '';
+        localStorage.removeItem('agentApiKey');
+        renderKeyBar();
+      };
+    } else {
+      renderKeyBar();
+    }
+  }
+  function renderKeyBar() {
+    keyBar.innerHTML = `
+      <span class="agent-key-label">Claude API Key:</span>
+      <input type="password" id="agentKeyInput" placeholder="sk-ant-..." autocomplete="off" value="${apiKey}"/>
+      <button class="agent-key-btn" id="agentKeySave">Save</button>`;
+    document.getElementById('agentKeySave').onclick = () => {
+      const v = document.getElementById('agentKeyInput').value.trim();
+      if (v) { apiKey = v; localStorage.setItem('agentApiKey', v); updateKeyUI(); }
+    };
+    document.getElementById('agentKeyInput').onkeydown = e => {
+      if (e.key === 'Enter') document.getElementById('agentKeySave').click();
+    };
+  }
+  updateKeyUI();
+
+  // --- Toggle panel ---
+  fab.onclick = () => panel.classList.toggle('open');
+  closeBtn.onclick = () => panel.classList.remove('open');
+
+  // --- Suggestion chips ---
+  suggestions.querySelectorAll('.agent-suggestion').forEach(btn => {
+    btn.onclick = () => { input.value = btn.textContent; sendMessage(); };
+  });
+
+  // --- Auto-resize textarea ---
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 80) + 'px';
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  sendBtn.onclick = sendMessage;
+
+  // --- Build full dashboard context ---
+  function buildContext() {
+    if (!DATA || !DATA.metrics || Object.keys(DATA.metrics).length === 0) return null;
+
+    const months = MONTHS.slice(0, currentMonth + 1);
+    const mName  = MONTHS[currentMonth];
+    const d      = compute(months);
+    const pF     = (currentMonth + 1) / 12;
+
+    const fmt  = (v, unit) => v == null ? '—' :
+      unit === '$M' ? `$${v.toFixed(1)}M` :
+      unit === '%'  ? `${v.toFixed(1)}%`  : v.toFixed(0);
+    const tgt  = name => DATA.metrics[name]?.target;
+    const ytd  = name => DATA.metrics[name]?.ytd;
+    const fcst = name => DATA.forecasts?.[name] || null;
+
+    const lines = [];
+    lines.push(`## GEP Services OKR Dashboard — FY2025`);
+    lines.push(`Current view: ${mName} 2025 | View mode: ${viewMode}`);
+    lines.push('');
+
+    // Revenue
+    lines.push('### Revenue');
+    lines.push(`Total Revenue: YTD $${d.rev.total.toFixed(1)}M | Annual Target $${ANN_TGT.revTotal}M | Forecast ${fcst('Rev Total ($M)') ? '$'+fcst('Rev Total ($M)').toFixed(1)+'M' : '—'}`);
+    lines.push(`  Strategy:        YTD $${(d.rev.strategy*1000).toFixed(0)}K | Annual Target $${ANN_TGT.revStrategy}M`);
+    lines.push(`  Consulting:      YTD $${d.rev.consulting.toFixed(1)}M | Annual Target $${ANN_TGT.revConsulting}M | Forecast ${fcst('Rev Consulting ($M)') ? '$'+fcst('Rev Consulting ($M)').toFixed(1)+'M' : '—'}`);
+    lines.push(`  Managed Services:YTD $${d.rev.ms.toFixed(1)}M | Annual Target $${ANN_TGT.revMS}M | Forecast ${fcst('Rev MS ($M)') ? '$'+fcst('Rev MS ($M)').toFixed(1)+'M' : '—'}`);
+    lines.push('');
+
+    // ACV
+    lines.push('### ACV (Closed)');
+    lines.push(`Total ACV: YTD $${d.acv.total.toFixed(1)}M | Annual Target $${ANN_TGT.acvTotal}M`);
+    lines.push(`  New Logos: $${d.acv.newLogo.toFixed(1)}M (target $${ANN_TGT.acvNewLogo}M)`);
+    lines.push(`  Upsell:    $${d.acv.upsell.toFixed(1)}M (target $${ANN_TGT.acvUpsell}M)`);
+    lines.push(`  Pipeline carry FY27: ${d.acv.pipelineCarry.toFixed(0)}% (target ${ANN_TGT.pipelineCarry}%)`);
+    lines.push('');
+
+    // Margin
+    lines.push('### Services Margin');
+    lines.push(`Overall Margin: ${d.mg.overall.toFixed(1)}% | Annual Target ${ANN_TGT.marginOverall}% | Forecast ${fcst('Margin %') ? fcst('Margin %').toFixed(1)+'%' : '—'}`);
+    lines.push(`  Blended Utilization: ${d.mg.util.toFixed(1)}% (target ${ANN_TGT.util}%)`);
+    lines.push(`  Consulting Margin:   ${d.mg.conM.toFixed(1)}% (target ${ANN_TGT.conM}%)`);
+    lines.push(`  MS Margin:           ${d.mg.msM.toFixed(1)}% (target ${ANN_TGT.msM}%)`);
+    lines.push('');
+
+    // Consulting
+    const conRev = d.rev.consulting, conTgt = ANN_TGT.revConsulting;
+    lines.push('### Consulting');
+    lines.push(`Revenue: $${conRev.toFixed(1)}M YTD vs $${conTgt}M annual target`);
+    lines.push(`Utilization: ${d.mg.conU != null ? d.mg.conU.toFixed(1)+'%' : '—'} (target ${ANN_TGT.conU}%)`);
+    lines.push(`Margin: ${d.mg.conM.toFixed(1)}% (target ${ANN_TGT.conM}%)`);
+    lines.push(`New Offerings %: ${d.rev.consultingNew?.toFixed(1) ?? '—'}% (target ${ANN_TGT.consultingNew}%)`);
+    lines.push('');
+
+    // Managed Services
+    lines.push('### Managed Services');
+    lines.push(`Revenue: $${d.rev.ms.toFixed(1)}M YTD vs $${ANN_TGT.revMS}M annual target`);
+    lines.push(`Utilization: ${d.mg.msU != null ? d.mg.msU.toFixed(1)+'%' : '—'} (target ${ANN_TGT.msU}%)`);
+    lines.push(`Margin: ${d.mg.msM.toFixed(1)}% (target ${ANN_TGT.msM}%)`);
+    lines.push(`Renewal Rate: ${d.msRenewal?.toFixed(1) ?? '—'}% (target ${ANN_TGT.msRenewal}%)`);
+    lines.push('');
+
+    // Agentic / AI
+    lines.push('### Agentic ARR');
+    lines.push(`ARR from Services Deals: $${(d.ag.arr*1000).toFixed(0)}K (target $${ANN_TGT.arr}M)`);
+    lines.push(`Agents Created: ${d.ag.created} (target ${ANN_TGT.agents})`);
+    lines.push(`AI Efficiency: ${d.ag.eff?.toFixed(1) ?? '—'}% (target ${ANN_TGT.aiEff}%)`);
+    lines.push('');
+
+    // People
+    lines.push('### People & Culture');
+    const ppMetrics = [
+      ['CSAT %', d.pp.csat, '%'], ['ESAT %', d.pp.esat, '%'],
+      ['Voluntary Attrition %', d.pp.vol, '%'], ['Regrettable Attrition %', d.pp.reg, '%'],
+      ['Mgr Retention %', d.pp.mgr, '%'], ['Lateral Hire Success %', d.pp.lat, '%'],
+      ['Diversity Score %', d.pp.div, '%']
+    ];
+    ppMetrics.forEach(([name, val, unit]) => {
+      const t = tgt(name);
+      lines.push(`  ${name}: ${fmt(val, unit)}${t != null ? ` | Target ${fmt(t, unit)}` : ''}`);
+    });
+    lines.push('');
+
+    // SC Strategy
+    lines.push('### SC Strategy');
+    const scMetrics = [
+      ['SC Revenue ($M)', d.sc.rev, '$M'], ['SC Pipeline ($M)', d.sc.pipe, '$M'],
+      ['SC Customers', d.sc.cust, ''], ['SC Thought Leadership', d.sc.thought, '']
+    ];
+    scMetrics.forEach(([name, val, unit]) => {
+      const t = tgt(name);
+      lines.push(`  ${name}: ${fmt(val, unit)}${t != null ? ` | Target ${fmt(t, unit)}` : ''}`);
+    });
+    lines.push('');
+
+    // Deals
+    if (d.deals && d.deals.length) {
+      lines.push('### Closed Deals (YTD)');
+      d.deals.forEach(dl => {
+        lines.push(`  ${dl.Client} | ${dl.Type} | ${dl.Scope} | $${(dl['ACV ($M)'] || 0).toFixed(2)}M ACV | ${dl.Month}`);
+      });
+      lines.push('');
+    }
+
+    // Pipeline
+    if (DATA.pipeline && DATA.pipeline.length) {
+      lines.push('### Active Pipeline');
+      DATA.pipeline.forEach(p => {
+        lines.push(`  ${p.Client} | ${p.Scope} | ACV $${(p['ACV ($M)'] || 0).toFixed(1)}M | Weighted $${(p['Weighted ACV ($M)'] || 0).toFixed(1)}M | Prob ${p.Probability || '—'}`);
+      });
+      lines.push('');
+    }
+
+    // Bonus
+    if (DATA.bonus && DATA.bonus.length) {
+      lines.push('### Bonus Opportunities');
+      DATA.bonus.forEach(b => {
+        lines.push(`  ${b.Client} | Potential $${(b.bonus || b['Estimated Bonus ($M)'] || 0).toFixed(1)}M | Prob ${b.Probability || '—'}`);
+      });
+    }
+
+    return lines.join('\n');
+  }
+
+  // --- Markdown → HTML (minimal) ---
+  function mdToHtml(text) {
+    return text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>')
+      .replace(/^### (.+)$/gm,'<strong>$1</strong>')
+      .replace(/^## (.+)$/gm,'<strong>$1</strong>')
+      .replace(/^- (.+)$/gm,'<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+      .replace(/\n\n/g,'</p><p>')
+      .replace(/\n/g,'<br>')
+      .replace(/^(.+)$/, '<p>$1</p>');
+  }
+
+  // --- Chat history ---
+  const history = [];
+
+  function appendMsg(role, html, streaming = false) {
+    const div = document.createElement('div');
+    div.className = `agent-msg ${role === 'user' ? 'user' : 'bot'}`;
+    const initial = role === 'user'
+      ? `<div class="agent-msg-avatar">You</div><div class="agent-msg-bubble">${html}</div>`
+      : `<div class="agent-msg-avatar">AI</div><div class="agent-msg-bubble" id="streamBubble">${html}</div>`;
+    div.innerHTML = initial;
+    // Remove welcome message on first real message
+    const welcome = document.getElementById('agentWelcome');
+    if (welcome) welcome.remove();
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'agent-msg bot';
+    div.id = 'agentTyping';
+    div.innerHTML = `<div class="agent-msg-avatar">AI</div>
+      <div class="agent-msg-bubble"><div class="agent-typing"><span></span><span></span><span></span></div></div>`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('agentTyping');
+    if (el) el.remove();
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!apiKey) {
+      appendMsg('bot', '⚠️ Please enter your Claude API key above to enable the AI agent.');
+      return;
+    }
+
+    const ctx = buildContext();
+    if (!ctx) {
+      appendMsg('bot', '⚠️ No dashboard data loaded. Please load your Excel file first, then ask your question.');
+      return;
+    }
+
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+    statusEl.textContent = 'Thinking...';
+
+    appendMsg('user', mdToHtml(text));
+    history.push({ role: 'user', content: text });
+
+    showTyping();
+
+    const systemPrompt = `You are Aether, an expert FP&A analytics agent for GEP Services. You have full access to the FY2025 dashboard data below. Answer questions concisely and accurately based only on the data provided. Use $ and % formatting. Highlight gaps, risks, and performance vs targets. When comparing to targets, indicate if ON TRACK (≥95%), AT RISK (85-94%), or BEHIND (<85%). For "lower is better" metrics like attrition, reverse the logic.
+
+DASHBOARD DATA:
+${ctx}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-allow-browser': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: history.slice(-10) // keep last 10 turns for context
+        })
+      });
+
+      removeTyping();
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.error?.message || `API error ${res.status}`;
+        appendMsg('bot', `⚠️ ${msg}`);
+        history.pop();
+        statusEl.textContent = 'Ask me anything about your dashboard';
+        sendBtn.disabled = false;
+        return;
+      }
+
+      const data = await res.json();
+      const reply = data.content?.[0]?.text || '(no response)';
+      history.push({ role: 'assistant', content: reply });
+
+      // Render with simple markdown
+      const bubble = appendMsg('bot', '');
+      const bubbleEl = bubble.querySelector('.agent-msg-bubble');
+      bubbleEl.innerHTML = renderMarkdown(reply);
+      messages.scrollTop = messages.scrollHeight;
+
+    } catch (e) {
+      removeTyping();
+      appendMsg('bot', `⚠️ Network error: ${e.message}`);
+      history.pop();
+    }
+
+    statusEl.textContent = 'Ask me anything about your dashboard';
+    sendBtn.disabled = false;
+    input.focus();
+  }
+
+  function renderMarkdown(text) {
+    // Tables
+    text = text.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g, (_, header, rows) => {
+      const ths = header.split('|').filter(c=>c.trim()).map(c=>`<th>${c.trim()}</th>`).join('');
+      const trs = rows.trim().split('\n').map(row => {
+        const tds = row.split('|').filter(c=>c.trim()).map(c=>`<td>${c.trim()}</td>`).join('');
+        return `<tr>${tds}</tr>`;
+      }).join('');
+      return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+    });
+    // Bold & italic
+    text = text.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
+    text = text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    text = text.replace(/\*(.+?)\*/g,'<em>$1</em>');
+    // Headers
+    text = text.replace(/^### (.+)$/gm,'<p><strong>$1</strong></p>');
+    text = text.replace(/^## (.+)$/gm,'<p><strong>$1</strong></p>');
+    text = text.replace(/^# (.+)$/gm,'<p><strong>$1</strong></p>');
+    // Lists
+    text = text.replace(/^[-*] (.+)$/gm,'<li>$1</li>');
+    text = text.replace(/(<li>[\s\S]+?<\/li>)/g,'<ul>$1</ul>');
+    text = text.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
+    // Paragraphs
+    const parts = text.split(/\n{2,}/);
+    return parts.map(p => {
+      if (p.startsWith('<')) return p;
+      return `<p>${p.replace(/\n/g,'<br>')}</p>`;
+    }).join('');
+  }
+
+})();
 </script>
 </body>
 </html>
