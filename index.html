@@ -437,21 +437,6 @@ body {
 .agent-close:hover { color: white; }
 .agent-close svg { width: 18px; height: 18px; }
 
-.agent-key-bar {
-  background: #f0fdf4; border-bottom: 1px solid #d1fae5;
-  padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-}
-.agent-key-bar input {
-  flex: 1; font-size: 12px; border: 1px solid #d1d5db; border-radius: 6px;
-  padding: 5px 8px; font-family: monospace; background: white; outline: none;
-}
-.agent-key-bar input:focus { border-color: #065f46; }
-.agent-key-btn {
-  font-size: 11px; font-weight: 600; padding: 5px 10px;
-  background: #065f46; color: white; border: none; border-radius: 6px; cursor: pointer;
-}
-.agent-key-label { font-size: 11px; color: #374151; white-space: nowrap; }
-.agent-key-saved { font-size: 11px; color: #065f46; font-weight: 600; }
 
 .agent-messages {
   flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px;
@@ -1782,10 +1767,10 @@ const _ORIGINAL_EMBEDDED_DATA = JSON.parse(JSON.stringify(EMBEDDED_DATA));
 init();
 initMSAL();
 
-// ===== AI AGENT =====
+// ===== AI AGENT (rule-based, no API key) =====
 (function() {
 
-  // --- DOM ---
+  // ── DOM ──────────────────────────────────────────────────────
   const fabHtml = `
   <button class="agent-fab" id="agentFab" title="Ask AI">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1811,26 +1796,22 @@ initMSAL();
         </svg>
       </button>
     </div>
-    <div class="agent-key-bar" id="agentKeyBar">
-      <span class="agent-key-label">Claude API Key:</span>
-      <input type="password" id="agentKeyInput" placeholder="sk-ant-..." autocomplete="off"/>
-      <button class="agent-key-btn" id="agentKeySave">Save</button>
-    </div>
     <div class="agent-messages" id="agentMessages">
       <div class="agent-no-data" id="agentWelcome">
-        👋 Hi! I have full access to your FY2025 dashboard data.<br><br>
-        Ask me about revenue, margins, pipeline, people metrics, or anything across the tabs.
+        Hi! I have full access to your FY2025 dashboard data across all tabs.<br><br>
+        Ask me about revenue, margins, ACV, pipeline, people metrics, SC strategy, or anything else.
       </div>
     </div>
     <div class="agent-suggestions" id="agentSuggestions">
-      <button class="agent-suggestion">How is revenue tracking vs target?</button>
-      <button class="agent-suggestion">What's our services margin gap?</button>
-      <button class="agent-suggestion">Show me People & Culture summary</button>
-      <button class="agent-suggestion">Which deals are in the pipeline?</button>
-      <button class="agent-suggestion">How is Consulting performing?</button>
+      <button class="agent-suggestion">Revenue vs target</button>
+      <button class="agent-suggestion">Services margin gap</button>
+      <button class="agent-suggestion">People & Culture summary</button>
+      <button class="agent-suggestion">Active pipeline deals</button>
+      <button class="agent-suggestion">Consulting performance</button>
+      <button class="agent-suggestion">Full dashboard summary</button>
     </div>
     <div class="agent-input-row">
-      <textarea class="agent-input" id="agentInput" placeholder="Ask about revenue, margins, pipeline..." rows="1"></textarea>
+      <textarea class="agent-input" id="agentInput" placeholder="Ask about any tab: revenue, margin, ACV, people, SC..." rows="1"></textarea>
       <button class="agent-send" id="agentSend">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -1841,58 +1822,24 @@ initMSAL();
 
   document.body.insertAdjacentHTML('beforeend', fabHtml);
 
-  const fab        = document.getElementById('agentFab');
-  const panel      = document.getElementById('agentPanel');
-  const closeBtn   = document.getElementById('agentClose');
-  const messages   = document.getElementById('agentMessages');
-  const input      = document.getElementById('agentInput');
-  const sendBtn    = document.getElementById('agentSend');
-  const keyBar     = document.getElementById('agentKeyBar');
-  const keyInput   = document.getElementById('agentKeyInput');
-  const keySave    = document.getElementById('agentKeySave');
-  const statusEl   = document.getElementById('agentStatus');
-  const suggestions= document.getElementById('agentSuggestions');
+  const fab      = document.getElementById('agentFab');
+  const panel    = document.getElementById('agentPanel');
+  const closeBtn = document.getElementById('agentClose');
+  const messages = document.getElementById('agentMessages');
+  const input    = document.getElementById('agentInput');
+  const sendBtn  = document.getElementById('agentSend');
+  const statusEl = document.getElementById('agentStatus');
 
-  // --- API key management ---
-  let apiKey = localStorage.getItem('agentApiKey') || '';
-  function updateKeyUI() {
-    if (apiKey) {
-      keyBar.innerHTML = `<span class="agent-key-saved">✓ API key saved</span>
-        <button class="agent-key-btn" id="agentKeyChange" style="background:#6b7280">Change</button>`;
-      document.getElementById('agentKeyChange').onclick = () => {
-        apiKey = '';
-        localStorage.removeItem('agentApiKey');
-        renderKeyBar();
-      };
-    } else {
-      renderKeyBar();
-    }
-  }
-  function renderKeyBar() {
-    keyBar.innerHTML = `
-      <span class="agent-key-label">Claude API Key:</span>
-      <input type="password" id="agentKeyInput" placeholder="sk-ant-..." autocomplete="off" value="${apiKey}"/>
-      <button class="agent-key-btn" id="agentKeySave">Save</button>`;
-    document.getElementById('agentKeySave').onclick = () => {
-      const v = document.getElementById('agentKeyInput').value.trim();
-      if (v) { apiKey = v; localStorage.setItem('agentApiKey', v); updateKeyUI(); }
-    };
-    document.getElementById('agentKeyInput').onkeydown = e => {
-      if (e.key === 'Enter') document.getElementById('agentKeySave').click();
-    };
-  }
-  updateKeyUI();
-
-  // --- Toggle panel ---
+  // ── Toggle panel ─────────────────────────────────────────────
   fab.onclick = () => panel.classList.toggle('open');
   closeBtn.onclick = () => panel.classList.remove('open');
 
-  // --- Suggestion chips ---
-  suggestions.querySelectorAll('.agent-suggestion').forEach(btn => {
+  // ── Suggestion chips ──────────────────────────────────────────
+  document.getElementById('agentSuggestions').querySelectorAll('.agent-suggestion').forEach(btn => {
     btn.onclick = () => { input.value = btn.textContent; sendMessage(); };
   });
 
-  // --- Auto-resize textarea ---
+  // ── Auto-resize textarea ──────────────────────────────────────
   input.addEventListener('input', () => {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 80) + 'px';
@@ -1902,156 +1849,415 @@ initMSAL();
   });
   sendBtn.onclick = sendMessage;
 
-  // --- Build full dashboard context ---
-  function buildContext() {
-    if (!DATA || !DATA.metrics || Object.keys(DATA.metrics).length === 0) return null;
+  // ── Rule-based agent engine ───────────────────────────────────
 
-    const months = MONTHS.slice(0, currentMonth + 1);
-    const mName  = MONTHS[currentMonth];
-    const d      = compute(months);
-    const pF     = (currentMonth + 1) / 12;
-
-    const fmt  = (v, unit) => v == null ? '—' :
-      unit === '$M' ? `$${v.toFixed(1)}M` :
-      unit === '%'  ? `${v.toFixed(1)}%`  : v.toFixed(0);
-    const tgt  = name => DATA.metrics[name]?.target;
-    const ytd  = name => DATA.metrics[name]?.ytd;
-    const fcst = name => DATA.forecasts?.[name] || null;
-
-    const lines = [];
-    lines.push(`## GEP Services OKR Dashboard — FY2025`);
-    lines.push(`Current view: ${mName} 2025 | View mode: ${viewMode}`);
-    lines.push('');
-
-    // Revenue
-    lines.push('### Revenue');
-    lines.push(`Total Revenue: YTD $${d.rev.total.toFixed(1)}M | Annual Target $${ANN_TGT.revTotal}M | Forecast ${fcst('Rev Total ($M)') ? '$'+fcst('Rev Total ($M)').toFixed(1)+'M' : '—'}`);
-    lines.push(`  Strategy:        YTD $${(d.rev.strategy*1000).toFixed(0)}K | Annual Target $${ANN_TGT.revStrategy}M`);
-    lines.push(`  Consulting:      YTD $${d.rev.consulting.toFixed(1)}M | Annual Target $${ANN_TGT.revConsulting}M | Forecast ${fcst('Rev Consulting ($M)') ? '$'+fcst('Rev Consulting ($M)').toFixed(1)+'M' : '—'}`);
-    lines.push(`  Managed Services:YTD $${d.rev.ms.toFixed(1)}M | Annual Target $${ANN_TGT.revMS}M | Forecast ${fcst('Rev MS ($M)') ? '$'+fcst('Rev MS ($M)').toFixed(1)+'M' : '—'}`);
-    lines.push('');
-
-    // ACV
-    lines.push('### ACV (Closed)');
-    lines.push(`Total ACV: YTD $${d.acv.total.toFixed(1)}M | Annual Target $${ANN_TGT.acvTotal}M`);
-    lines.push(`  New Logos: $${d.acv.newLogo.toFixed(1)}M (target $${ANN_TGT.acvNewLogo}M)`);
-    lines.push(`  Upsell:    $${d.acv.upsell.toFixed(1)}M (target $${ANN_TGT.acvUpsell}M)`);
-    lines.push(`  Pipeline carry FY27: ${d.acv.pipelineCarry.toFixed(0)}% (target ${ANN_TGT.pipelineCarry}%)`);
-    lines.push('');
-
-    // Margin
-    lines.push('### Services Margin');
-    lines.push(`Overall Margin: ${d.mg.overall.toFixed(1)}% | Annual Target ${ANN_TGT.marginOverall}% | Forecast ${fcst('Margin %') ? fcst('Margin %').toFixed(1)+'%' : '—'}`);
-    lines.push(`  Blended Utilization: ${d.mg.util.toFixed(1)}% (target ${ANN_TGT.util}%)`);
-    lines.push(`  Consulting Margin:   ${d.mg.conM.toFixed(1)}% (target ${ANN_TGT.conM}%)`);
-    lines.push(`  MS Margin:           ${d.mg.msM.toFixed(1)}% (target ${ANN_TGT.msM}%)`);
-    lines.push('');
-
-    // Consulting
-    const conRev = d.rev.consulting, conTgt = ANN_TGT.revConsulting;
-    lines.push('### Consulting');
-    lines.push(`Revenue: $${conRev.toFixed(1)}M YTD vs $${conTgt}M annual target`);
-    lines.push(`Utilization: ${d.mg.conU != null ? d.mg.conU.toFixed(1)+'%' : '—'} (target ${ANN_TGT.conU}%)`);
-    lines.push(`Margin: ${d.mg.conM.toFixed(1)}% (target ${ANN_TGT.conM}%)`);
-    lines.push(`New Offerings %: ${d.rev.consultingNew?.toFixed(1) ?? '—'}% (target ${ANN_TGT.consultingNew}%)`);
-    lines.push('');
-
-    // Managed Services
-    lines.push('### Managed Services');
-    lines.push(`Revenue: $${d.rev.ms.toFixed(1)}M YTD vs $${ANN_TGT.revMS}M annual target`);
-    lines.push(`Utilization: ${d.mg.msU != null ? d.mg.msU.toFixed(1)+'%' : '—'} (target ${ANN_TGT.msU}%)`);
-    lines.push(`Margin: ${d.mg.msM.toFixed(1)}% (target ${ANN_TGT.msM}%)`);
-    lines.push(`Renewal Rate: ${d.msRenewal?.toFixed(1) ?? '—'}% (target ${ANN_TGT.msRenewal}%)`);
-    lines.push('');
-
-    // Agentic / AI
-    lines.push('### Agentic ARR');
-    lines.push(`ARR from Services Deals: $${(d.ag.arr*1000).toFixed(0)}K (target $${ANN_TGT.arr}M)`);
-    lines.push(`Agents Created: ${d.ag.created} (target ${ANN_TGT.agents})`);
-    lines.push(`AI Efficiency: ${d.ag.eff?.toFixed(1) ?? '—'}% (target ${ANN_TGT.aiEff}%)`);
-    lines.push('');
-
-    // People
-    lines.push('### People & Culture');
-    const ppMetrics = [
-      ['CSAT %', d.pp.csat, '%'], ['ESAT %', d.pp.esat, '%'],
-      ['Voluntary Attrition %', d.pp.vol, '%'], ['Regrettable Attrition %', d.pp.reg, '%'],
-      ['Mgr Retention %', d.pp.mgr, '%'], ['Lateral Hire Success %', d.pp.lat, '%'],
-      ['Diversity Score %', d.pp.div, '%']
-    ];
-    ppMetrics.forEach(([name, val, unit]) => {
-      const t = tgt(name);
-      lines.push(`  ${name}: ${fmt(val, unit)}${t != null ? ` | Target ${fmt(t, unit)}` : ''}`);
-    });
-    lines.push('');
-
-    // SC Strategy
-    lines.push('### SC Strategy');
-    const scMetrics = [
-      ['SC Revenue ($M)', d.sc.rev, '$M'], ['SC Pipeline ($M)', d.sc.pipe, '$M'],
-      ['SC Customers', d.sc.cust, ''], ['SC Thought Leadership', d.sc.thought, '']
-    ];
-    scMetrics.forEach(([name, val, unit]) => {
-      const t = tgt(name);
-      lines.push(`  ${name}: ${fmt(val, unit)}${t != null ? ` | Target ${fmt(t, unit)}` : ''}`);
-    });
-    lines.push('');
-
-    // Deals
-    if (d.deals && d.deals.length) {
-      lines.push('### Closed Deals (YTD)');
-      d.deals.forEach(dl => {
-        lines.push(`  ${dl.Client} | ${dl.Type} | ${dl.Scope} | $${(dl['ACV ($M)'] || 0).toFixed(2)}M ACV | ${dl.Month}`);
-      });
-      lines.push('');
-    }
-
-    // Pipeline
-    if (DATA.pipeline && DATA.pipeline.length) {
-      lines.push('### Active Pipeline');
-      DATA.pipeline.forEach(p => {
-        lines.push(`  ${p.Client} | ${p.Scope} | ACV $${(p['ACV ($M)'] || 0).toFixed(1)}M | Weighted $${(p['Weighted ACV ($M)'] || 0).toFixed(1)}M | Prob ${p.Probability || '—'}`);
-      });
-      lines.push('');
-    }
-
-    // Bonus
-    if (DATA.bonus && DATA.bonus.length) {
-      lines.push('### Bonus Opportunities');
-      DATA.bonus.forEach(b => {
-        lines.push(`  ${b.Client} | Potential $${(b.bonus || b['Estimated Bonus ($M)'] || 0).toFixed(1)}M | Prob ${b.Probability || '—'}`);
-      });
-    }
-
-    return lines.join('\n');
+  // Helper: get live computed data for all tabs
+  function getD() {
+    if (!DATA || !DATA.metrics || !Object.keys(DATA.metrics).length) return null;
+    return compute(MONTHS.slice(0, currentMonth + 1));
   }
 
-  // --- Markdown → HTML (minimal) ---
-  function mdToHtml(text) {
-    return text
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g,'<em>$1</em>')
-      .replace(/^### (.+)$/gm,'<strong>$1</strong>')
-      .replace(/^## (.+)$/gm,'<strong>$1</strong>')
-      .replace(/^- (.+)$/gm,'<li>$1</li>')
-      .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-      .replace(/\n\n/g,'</p><p>')
-      .replace(/\n/g,'<br>')
-      .replace(/^(.+)$/, '<p>$1</p>');
+  // Helper: status badge HTML
+  function badge(actual, target, low = false) {
+    if (actual == null || target == null || target === 0) return '';
+    const pct = (actual / target) * 100;
+    const on  = low ? pct <= 105 : pct >= 95;
+    const risk= low ? pct <= 115 : pct >= 85;
+    const cls = on ? 'green' : risk ? 'amber' : 'red';
+    const lbl = on ? 'ON TRACK' : risk ? 'AT RISK' : 'BEHIND';
+    return `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--${cls}-bg);color:var(--${cls})">${lbl}</span>`;
   }
 
-  // --- Chat history ---
-  const history = [];
+  // Helper: format values
+  const fM = v => v == null ? '—' : `$${v.toFixed(1)}M`;
+  const fP = v => v == null ? '—' : `${v.toFixed(1)}%`;
+  const fN = v => v == null ? '—' : v.toFixed(0);
 
-  function appendMsg(role, html, streaming = false) {
+  // Helper: row in a mini table
+  function row(label, actual, target, unit, low = false) {
+    const fmtA = unit==='$M' ? fM(actual) : unit==='%' ? fP(actual) : fN(actual);
+    const fmtT = target != null ? (unit==='$M' ? fM(target) : unit==='%' ? fP(target) : fN(target)) : '—';
+    const b = badge(actual, target, low);
+    return `<tr><td>${label}</td><td><strong>${fmtA}</strong></td><td>${fmtT}</td><td>${b}</td></tr>`;
+  }
+
+  function table(headers, rows) {
+    const ths = headers.map(h=>`<th>${h}</th>`).join('');
+    return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  // ── Intent routing ────────────────────────────────────────────
+  // Returns HTML string answer for the question q
+  function route(q) {
+    const t = q.toLowerCase();
+    const has = (...kw) => kw.some(k => t.includes(k));
+
+    const d = getD();
+    if (!d) return `<p>⚠️ No data loaded yet. Please load your Excel file first using the <strong>Load Excel</strong> button.</p>`;
+
+    // Orchestrate: pick the best handler(s) based on intent
+    if (has('summar', 'overview', 'exec', 'all tab', 'everything', 'full', 'dashboard'))
+      return answerSummary(d);
+    if (has('revenue', 'rev '))
+      return answerRevenue(d);
+    if (has('margin', 'profit', 'profitab'))
+      return answerMargin(d);
+    if (has('utiliz', 'util'))
+      return answerUtilization(d);
+    if (has('acv', 'closed deal', 'bookings', 'new logo', 'upsell'))
+      return answerACV(d);
+    if (has('pipeline', 'opportunity', 'opportunit', 'weighted'))
+      return answerPipeline(d);
+    if (has('deal', 'won', 'closed'))
+      return answerDeals(d);
+    if (has('bonus', 'incentive'))
+      return answerBonus(d);
+    if (has('consult'))
+      return answerConsulting(d);
+    if (has('managed service', ' ms ', 'ms margin', 'ms rev', 'ms util', 'renewal', 'manage'))
+      return answerMS(d);
+    if (has('people', 'culture', 'attrition', 'csat', 'esat', 'retention', 'diversity', 'lateral', 'hire', 'employee', 'satisf'))
+      return answerPeople(d);
+    if (has('sc strategy', 'supply chain', ' sc ', 'thought leadership', 'referenceable'))
+      return answerSC(d);
+    if (has('agent', 'agentic', 'arr', 'ai efficiency', 'software', 'llm'))
+      return answerAgentic(d);
+    if (has('forecast', 'fy25', 'fy2025', 'full year', 'annual', 'end of year'))
+      return answerForecast(d);
+    if (has('behind', 'risk', 'gap', 'miss', 'off track', 'concern', 'issue', 'problem', 'warn', 'red'))
+      return answerRisks(d);
+    if (has('on track', 'green', 'hit', 'exceed', 'good', 'best', 'top', 'strong'))
+      return answerStrengths(d);
+    if (has('target', 'goal', 'okr'))
+      return answerTargets(d);
+    if (has('compar', 'versus', 'vs '))
+      return answerComparison(d);
+    if (has('month', 'period', 'current', 'today', 'when'))
+      return `<p>Currently viewing <strong>${MONTHS[currentMonth]} 2025</strong> in <strong>${viewMode}</strong> mode.</p>`;
+    if (has('help', 'what can', 'what do', 'capab'))
+      return answerHelp();
+
+    // Fuzzy fallback: try all handlers and pick most relevant
+    return answerUnknown(q);
+  }
+
+  // ── Handlers per domain ───────────────────────────────────────
+
+  function answerRevenue(d) {
+    const pF = (currentMonth + 1) / 12;
+    const revPace = (d.rev.total / (ANN_TGT.revTotal * pF)) * 100;
+    const rows =
+      row('Total Services Revenue', d.rev.total, ANN_TGT.revTotal * pF, '$M') +
+      row('  → Strategy',           d.rev.strategy, ANN_TGT.revStrategy * pF, '$M') +
+      row('  → Consulting',         d.rev.consulting, ANN_TGT.revConsulting * pF, '$M') +
+      row('  → Managed Services',   d.rev.ms, ANN_TGT.revMS * pF, '$M');
+    const forecastRow = d.rev.forecastTotal
+      ? `<p>Full-year forecast: <strong>${fM(d.rev.forecastTotal)}</strong> vs $${ANN_TGT.revTotal}M target — ${badge(d.rev.forecastTotal, ANN_TGT.revTotal)}</p>`
+      : '';
+    return `<p><strong>Revenue — ${MONTHS[currentMonth]} YTD</strong></p>
+${table(['Metric','Actual','Pro-rated Target','Status'], rows)}
+${forecastRow}`;
+  }
+
+  function answerMargin(d) {
+    const rows =
+      row('Overall Services Margin',   d.mg.overall, ANN_TGT.marginOverall, '%') +
+      row('  → Consulting Margin',     d.mg.conM, ANN_TGT.conM, '%') +
+      row('  → MS Margin',             d.mg.msM, ANN_TGT.msM, '%') +
+      row('  → Blended Utilization',   d.mg.util, ANN_TGT.util, '%');
+    const forecastRow = d.rev.forecastTotal
+      ? `<p>Margin forecast available — use Forecast view for full-year projection.</p>` : '';
+    return `<p><strong>Services Margin — ${MONTHS[currentMonth]} ${viewMode}</strong></p>
+${table(['Metric','Actual','Target','Status'], rows)}
+${forecastRow}`;
+  }
+
+  function answerUtilization(d) {
+    const rows =
+      row('Blended Utilization',   d.mg.util,  ANN_TGT.util, '%') +
+      row('  → Consulting Util',   d.mg.conU, ANN_TGT.conU, '%') +
+      row('  → MS Utilization',    d.mg.msU,  ANN_TGT.msU, '%');
+    return `<p><strong>Utilization — ${MONTHS[currentMonth]} ${viewMode}</strong></p>
+${table(['Metric','Actual','Target','Status'], rows)}
+<p>Utilization directly drives margin. Each 1% improvement in blended utilization adds ~0.3–0.5pts to margin.</p>`;
+  }
+
+  function answerACV(d) {
+    const pF = (currentMonth + 1) / 12;
+    const rows =
+      row('Total ACV Closed',      d.acv.total,        ANN_TGT.acvTotal * pF,   '$M') +
+      row('  → New Logos',         d.acv.newLogo,      ANN_TGT.acvNewLogo * pF, '$M') +
+      row('  → Upsell',            d.acv.upsell,       ANN_TGT.acvUpsell * pF,  '$M') +
+      row('  Pipeline Carry FY27', d.acv.pipelineCarry, ANN_TGT.pipelineCarry,  '%');
+    return `<p><strong>ACV Closed — ${MONTHS[currentMonth]} YTD</strong></p>
+${table(['Metric','Actual','Pro-rated Target','Status'], rows)}
+<p>ACV New Logos target for FY25: <strong>$${ANN_TGT.acvNewLogo}M</strong> | Upsell: <strong>$${ANN_TGT.acvUpsell}M</strong></p>`;
+  }
+
+  function answerPipeline(d) {
+    if (!DATA.pipeline || !DATA.pipeline.length)
+      return `<p>No active pipeline data loaded. Load the Excel file to see pipeline opportunities.</p>`;
+    const rows = DATA.pipeline.map(p =>
+      `<tr><td>${p.Client||'—'}</td><td>${p.Scope||'—'}</td><td><strong>${fM(p['ACV ($M)']||0)}</strong></td><td>${fM(p['Weighted ACV ($M)']||0)}</td><td>${p.Probability||'—'}</td></tr>`
+    ).join('');
+    const total = DATA.pipeline.reduce((s,p) => s + (p['Weighted ACV ($M)']||0), 0);
+    return `<p><strong>Active Pipeline</strong> — ${DATA.pipeline.length} opportunities | Weighted Total: <strong>${fM(total)}</strong></p>
+${table(['Client','Scope','ACV','Weighted ACV','Probability'], rows)}`;
+  }
+
+  function answerDeals(d) {
+    if (!d.deals || !d.deals.length)
+      return `<p>No closed deals in the loaded data for this period.</p>`;
+    const rows = d.deals.map(dl =>
+      `<tr><td>${dl.Client||'—'}</td><td>${dl.Type||'—'}</td><td>${dl.Scope||'—'}</td><td><strong>${fM(dl['ACV ($M)']||0)}</strong></td><td>${dl.Month||'—'}</td></tr>`
+    ).join('');
+    const total = d.deals.reduce((s,dl) => s + (dl['ACV ($M)']||0), 0);
+    return `<p><strong>Closed Deals YTD</strong> — ${d.deals.length} deals | Total ACV: <strong>${fM(total)}</strong></p>
+${table(['Client','Type','Scope','ACV','Month'], rows)}`;
+  }
+
+  function answerBonus(d) {
+    if (!DATA.bonus || !DATA.bonus.length)
+      return `<p>No bonus opportunity data loaded.</p>`;
+    const rows = DATA.bonus.map(b =>
+      `<tr><td>${b.Client||'—'}</td><td><strong>${fM(b.bonus || b['Estimated Bonus ($M)']||0)}</strong></td><td>${b.Probability||'—'}</td><td>${b.Notes||b.Scope||'—'}</td></tr>`
+    ).join('');
+    return `<p><strong>Bonus Opportunities</strong></p>
+${table(['Client','Estimated Bonus','Probability','Notes'], rows)}`;
+  }
+
+  function answerConsulting(d) {
+    const pF = (currentMonth + 1) / 12;
+    const rows =
+      row('Consulting Revenue',         d.rev.consulting,   ANN_TGT.revConsulting * pF, '$M') +
+      row('Consulting Margin',          d.mg.conM,          ANN_TGT.conM,               '%') +
+      row('Consulting Utilization',     d.mg.conU,          ANN_TGT.conU,               '%') +
+      row('New Offerings %',            d.rev.consultingNew, ANN_TGT.consultingNew,      '%') +
+      row('ACV New Logos',              d.acv.newLogo,      ANN_TGT.acvNewLogo * pF,    '$M');
+    const forecastRow = d.rev.forecastConsulting
+      ? `<p>Consulting full-year forecast: <strong>${fM(d.rev.forecastConsulting)}</strong> vs $${ANN_TGT.revConsulting}M target</p>` : '';
+    return `<p><strong>Consulting — ${MONTHS[currentMonth]} ${viewMode}</strong></p>
+${table(['Metric','Actual','Target','Status'], rows)}
+${forecastRow}`;
+  }
+
+  function answerMS(d) {
+    const pF = (currentMonth + 1) / 12;
+    const rows =
+      row('MS Revenue',       d.rev.ms,      ANN_TGT.revMS * pF, '$M') +
+      row('MS Margin',        d.mg.msM,      ANN_TGT.msM,         '%') +
+      row('MS Utilization',   d.mg.msU,      ANN_TGT.msU,         '%') +
+      row('MS Renewal Rate',  d.msRenewal,   ANN_TGT.msRenewal,   '%');
+    const forecastRow = d.rev.forecastMS
+      ? `<p>MS full-year forecast: <strong>${fM(d.rev.forecastMS)}</strong> vs $${ANN_TGT.revMS}M target</p>` : '';
+    return `<p><strong>Managed Services — ${MONTHS[currentMonth]} ${viewMode}</strong></p>
+${table(['Metric','Actual','Target','Status'], rows)}
+${forecastRow}`;
+  }
+
+  function answerPeople(d) {
+    const rows =
+      row('CSAT %',                d.pp.csat, getAnnTgt('CSAT %'),                     '%') +
+      row('ESAT %',                d.pp.esat, getAnnTgt('ESAT %'),                     '%') +
+      row('Voluntary Attrition',   d.pp.vol,  getAnnTgt('Voluntary Attrition %'),      '%', true) +
+      row('Regrettable Attrition', d.pp.reg,  getAnnTgt('Regrettable Attrition %'),    '%', true) +
+      row('Mgr Retention %',       d.pp.mgr,  getAnnTgt('Mgr Retention %'),            '%') +
+      row('Lateral Hire Success',  d.pp.lat,  getAnnTgt('Lateral Hire Success %'),     '%') +
+      row('Diversity Score',       d.pp.div,  getAnnTgt('Diversity Score %'),          '%');
+    return `<p><strong>People & Culture — ${MONTHS[currentMonth]} ${viewMode}</strong></p>
+${table(['Metric','Actual','Target','Status'], rows)}
+<p><em>Note: Attrition is "lower is better" — ON TRACK means ≤ target.</em></p>`;
+  }
+
+  function answerSC(d) {
+    const rows =
+      row('SC Strategy Revenue',      d.sc.rev,    getAnnTgt('SC Revenue ($M)'),         '$M') +
+      row('Weighted Pipeline',         d.sc.pipe,   getAnnTgt('SC Pipeline ($M)'),        '$M') +
+      row('Referenceable Customers',   d.sc.cust,   getAnnTgt('SC Customers'),            '') +
+      row('Thought Leadership Pieces', d.sc.thought,getAnnTgt('SC Thought Leadership'),   '');
+    return `<p><strong>SC Strategy — ${MONTHS[currentMonth]} ${viewMode}</strong></p>
+${table(['Metric','Actual','Target','Status'], rows)}
+<p>OKR 4: Launch Supply Chain Strategy Practice as a new revenue pillar.</p>`;
+  }
+
+  function answerAgentic(d) {
+    const rows =
+      row('ARR from Services Deals', d.ag.arr,     ANN_TGT.arr,     '$M') +
+      row('Agents Created',          d.ag.created, ANN_TGT.agents,  '') +
+      row('AI Efficiency Gain',      d.ag.eff,     ANN_TGT.aiEff,   '%');
+    return `<p><strong>Agentic / AI ARR — ${MONTHS[currentMonth]} ${viewMode}</strong></p>
+${table(['Metric','Actual','Target','Status'], rows)}
+<p>OKR 2: Transform Services into Agentic Software — $${ANN_TGT.arr}M ARR target, ${ANN_TGT.agents} agents, ${ANN_TGT.aiEff}% AI efficiency.</p>`;
+  }
+
+  function answerForecast(d) {
+    const items = [
+      ['Total Revenue',    d.rev.forecastTotal,      ANN_TGT.revTotal,      '$M'],
+      ['Consulting Rev',   d.rev.forecastConsulting, ANN_TGT.revConsulting, '$M'],
+      ['MS Revenue',       d.rev.forecastMS,         ANN_TGT.revMS,         '$M'],
+    ].filter(([,v]) => v != null);
+    if (!items.length) return `<p>Forecast data not available. Switch to <strong>Forecast</strong> view mode or load the Excel file.</p>`;
+    const rows = items.map(([l,a,t,u]) => row(l,a,t,u)).join('');
+    return `<p><strong>Full-Year Forecast vs Annual Target</strong></p>
+${table(['Metric','Forecast','Annual Target','Status'], rows)}
+<p>Switch to <strong>Forecast</strong> view mode in the header for the full forecast view.</p>`;
+  }
+
+  function answerRisks(d) {
+    const pF = (currentMonth + 1) / 12;
+    const checks = [
+      { label: 'Total Revenue',       a: d.rev.total,         t: ANN_TGT.revTotal * pF,       u: '$M' },
+      { label: 'Consulting Revenue',  a: d.rev.consulting,    t: ANN_TGT.revConsulting * pF,  u: '$M' },
+      { label: 'MS Revenue',          a: d.rev.ms,            t: ANN_TGT.revMS * pF,          u: '$M' },
+      { label: 'ACV Closed',          a: d.acv.total,         t: ANN_TGT.acvTotal * pF,       u: '$M' },
+      { label: 'New Logo ACV',        a: d.acv.newLogo,       t: ANN_TGT.acvNewLogo * pF,     u: '$M' },
+      { label: 'Services Margin',     a: d.mg.overall,        t: ANN_TGT.marginOverall,       u: '%'  },
+      { label: 'Blended Utilization', a: d.mg.util,           t: ANN_TGT.util,                u: '%'  },
+      { label: 'Consulting Util',     a: d.mg.conU,           t: ANN_TGT.conU,                u: '%'  },
+      { label: 'MS Renewal Rate',     a: d.msRenewal,         t: ANN_TGT.msRenewal,           u: '%'  },
+      { label: 'Voluntary Attrition', a: d.pp.vol,            t: getAnnTgt('Voluntary Attrition %'), u: '%', low: true },
+      { label: 'CSAT',                a: d.pp.csat,           t: getAnnTgt('CSAT %'),          u: '%'  },
+      { label: 'SC Revenue',          a: d.sc.rev,            t: getAnnTgt('SC Revenue ($M)'), u: '$M' },
+    ];
+    const risks = checks.filter(c => {
+      if (c.a == null || !c.t) return false;
+      const pct = (c.a / c.t) * 100;
+      return c.low ? pct > 105 : pct < 95;
+    });
+    if (!risks.length) return `<p>No significant risks detected at this time. All tracked metrics appear to be on track.</p>`;
+    const rows = risks.map(c => {
+      const pct = c.t ? ((c.a / c.t) * 100).toFixed(0) : '—';
+      const fmtA = c.u==='$M' ? fM(c.a) : fP(c.a);
+      const fmtT = c.u==='$M' ? fM(c.t) : fP(c.t);
+      const b = badge(c.a, c.t, c.low);
+      return `<tr><td>${c.label}</td><td><strong>${fmtA}</strong></td><td>${fmtT}</td><td>${pct}%</td><td>${b}</td></tr>`;
+    }).join('');
+    return `<p><strong>${risks.length} metric(s) at risk or behind target</strong></p>
+${table(['Metric','Actual','Target','% of Target','Status'], rows)}`;
+  }
+
+  function answerStrengths(d) {
+    const pF = (currentMonth + 1) / 12;
+    const checks = [
+      { label: 'Total Revenue',       a: d.rev.total,       t: ANN_TGT.revTotal * pF,      u: '$M' },
+      { label: 'Consulting Revenue',  a: d.rev.consulting,  t: ANN_TGT.revConsulting * pF, u: '$M' },
+      { label: 'MS Revenue',          a: d.rev.ms,          t: ANN_TGT.revMS * pF,         u: '$M' },
+      { label: 'ACV Closed',          a: d.acv.total,       t: ANN_TGT.acvTotal * pF,      u: '$M' },
+      { label: 'Services Margin',     a: d.mg.overall,      t: ANN_TGT.marginOverall,      u: '%'  },
+      { label: 'Blended Utilization', a: d.mg.util,         t: ANN_TGT.util,               u: '%'  },
+      { label: 'MS Renewal Rate',     a: d.msRenewal,       t: ANN_TGT.msRenewal,          u: '%'  },
+      { label: 'CSAT',                a: d.pp.csat,         t: getAnnTgt('CSAT %'),        u: '%'  },
+      { label: 'Mgr Retention',       a: d.pp.mgr,          t: getAnnTgt('Mgr Retention %'), u: '%'},
+    ];
+    const strong = checks.filter(c => c.a != null && c.t && (c.a / c.t) >= 0.95);
+    if (!strong.length) return `<p>No metrics are currently meeting or exceeding their pro-rated targets.</p>`;
+    const rows = strong.map(c => {
+      const pct = ((c.a / c.t) * 100).toFixed(0);
+      const fmtA = c.u==='$M' ? fM(c.a) : fP(c.a);
+      const fmtT = c.u==='$M' ? fM(c.t) : fP(c.t);
+      return `<tr><td>${c.label}</td><td><strong>${fmtA}</strong></td><td>${fmtT}</td><td>${pct}%</td><td>${badge(c.a,c.t)}</td></tr>`;
+    }).join('');
+    return `<p><strong>${strong.length} metric(s) on track or ahead</strong></p>
+${table(['Metric','Actual','Target','% of Target','Status'], rows)}`;
+  }
+
+  function answerTargets(d) {
+    return `<p><strong>FY2025 Annual Targets</strong></p>
+${table(['Metric','Annual Target'], [
+  `<tr><td>Total Revenue</td><td>$${ANN_TGT.revTotal}M</td></tr>`,
+  `<tr><td>Consulting Revenue</td><td>$${ANN_TGT.revConsulting}M</td></tr>`,
+  `<tr><td>MS Revenue</td><td>$${ANN_TGT.revMS}M</td></tr>`,
+  `<tr><td>Total ACV</td><td>$${ANN_TGT.acvTotal}M</td></tr>`,
+  `<tr><td>New Logo ACV</td><td>$${ANN_TGT.acvNewLogo}M</td></tr>`,
+  `<tr><td>Upsell ACV</td><td>$${ANN_TGT.acvUpsell}M</td></tr>`,
+  `<tr><td>Services Margin</td><td>${ANN_TGT.marginOverall}%</td></tr>`,
+  `<tr><td>Blended Utilization</td><td>${ANN_TGT.util}%</td></tr>`,
+  `<tr><td>Agentic ARR</td><td>$${ANN_TGT.arr}M</td></tr>`,
+  `<tr><td>Agents Created</td><td>${ANN_TGT.agents.toLocaleString()}</td></tr>`,
+].join(''))}`;
+  }
+
+  function answerComparison(d) {
+    const pF = (currentMonth + 1) / 12;
+    const rows =
+      row('Consulting Revenue',   d.rev.consulting, ANN_TGT.revConsulting * pF, '$M') +
+      row('Consulting Margin',    d.mg.conM,        ANN_TGT.conM,               '%') +
+      row('Consulting Util',      d.mg.conU,        ANN_TGT.conU,               '%') +
+      `<tr><td colspan="4" style="padding-top:8px;font-weight:600;border-top:2px solid #e5e7eb">Managed Services</td></tr>` +
+      row('MS Revenue',           d.rev.ms,         ANN_TGT.revMS * pF,         '$M') +
+      row('MS Margin',            d.mg.msM,         ANN_TGT.msM,                '%') +
+      row('MS Util',              d.mg.msU,         ANN_TGT.msU,                '%');
+    return `<p><strong>Consulting vs Managed Services — ${MONTHS[currentMonth]} ${viewMode}</strong></p>
+${table(['Segment / Metric','Actual','Target','Status'], rows)}`;
+  }
+
+  function answerSummary(d) {
+    const pF = (currentMonth + 1) / 12;
+    // Collect risk count for headline
+    const checks = [
+      { a: d.rev.total,    t: ANN_TGT.revTotal * pF },
+      { a: d.acv.total,    t: ANN_TGT.acvTotal * pF },
+      { a: d.mg.overall,   t: ANN_TGT.marginOverall },
+      { a: d.mg.util,      t: ANN_TGT.util },
+      { a: d.pp.csat,      t: getAnnTgt('CSAT %') },
+    ];
+    const riskCount = checks.filter(c => c.a != null && c.t && (c.a/c.t) < 0.85).length;
+    const okCount   = checks.filter(c => c.a != null && c.t && (c.a/c.t) >= 0.95).length;
+    return `<p><strong>Executive Dashboard Summary — ${MONTHS[currentMonth]} 2025 (${viewMode})</strong></p>
+<p>${okCount} of ${checks.length} key metrics on track · ${riskCount > 0 ? `<span style="color:var(--red)">${riskCount} behind target</span>` : '<span style="color:var(--green)">no critical gaps</span>'}</p>
+<p><strong>Revenue</strong></p>
+${table(['Segment','YTD','Pro-rated Target','Status'],[
+  row('Total',          d.rev.total,      ANN_TGT.revTotal * pF,      '$M'),
+  row('Consulting',     d.rev.consulting, ANN_TGT.revConsulting * pF, '$M'),
+  row('Managed Svcs',   d.rev.ms,         ANN_TGT.revMS * pF,         '$M'),
+])}
+<p><strong>ACV & Margin</strong></p>
+${table(['Metric','Actual','Target','Status'],[
+  row('Total ACV',          d.acv.total,   ANN_TGT.acvTotal * pF,   '$M'),
+  row('Services Margin',    d.mg.overall,  ANN_TGT.marginOverall,   '%'),
+  row('Blended Util',       d.mg.util,     ANN_TGT.util,            '%'),
+  row('MS Renewal Rate',    d.msRenewal,   ANN_TGT.msRenewal,       '%'),
+])}
+<p><strong>People & Strategic</strong></p>
+${table(['Metric','Actual','Target','Status'],[
+  row('CSAT',               d.pp.csat,    getAnnTgt('CSAT %'),             '%'),
+  row('Voluntary Attrition',d.pp.vol,     getAnnTgt('Voluntary Attrition %'), '%', true),
+  row('SC Strategy Rev',    d.sc.rev,     getAnnTgt('SC Revenue ($M)'),    '$M'),
+  row('Agentic ARR',        d.ag.arr,     ANN_TGT.arr,                     '$M'),
+])}`;
+  }
+
+  function answerHelp() {
+    return `<p><strong>I can answer questions about all dashboard tabs:</strong></p>
+<ul>
+<li><strong>Overview / Summary</strong> — "Give me a full dashboard summary"</li>
+<li><strong>Revenue</strong> — "How is revenue tracking vs target?"</li>
+<li><strong>Margin & Utilization</strong> — "What is our services margin gap?"</li>
+<li><strong>ACV / Bookings</strong> — "Show me ACV closed this year"</li>
+<li><strong>Consulting</strong> — "How is consulting performing?"</li>
+<li><strong>Managed Services</strong> — "What's the MS renewal rate?"</li>
+<li><strong>People & Culture</strong> — "Show attrition and CSAT"</li>
+<li><strong>SC Strategy</strong> — "SC strategy pipeline status"</li>
+<li><strong>Agentic ARR</strong> — "How many agents have been created?"</li>
+<li><strong>Pipeline / Deals</strong> — "Show active pipeline deals"</li>
+<li><strong>Risks</strong> — "What metrics are behind target?"</li>
+<li><strong>Forecast</strong> — "What's the full-year revenue forecast?"</li>
+</ul>`;
+  }
+
+  function answerUnknown(q) {
+    return `<p>I'm not sure how to answer "<em>${q}</em>".</p>
+<p>Try asking about: <strong>revenue</strong>, <strong>margin</strong>, <strong>ACV</strong>, <strong>consulting</strong>, <strong>managed services</strong>, <strong>people</strong>, <strong>SC strategy</strong>, <strong>pipeline</strong>, <strong>risks</strong>, or say <strong>"full summary"</strong>.</p>`;
+  }
+
+  // ── Message rendering ─────────────────────────────────────────
+
+  function appendMsg(role, html) {
     const div = document.createElement('div');
     div.className = `agent-msg ${role === 'user' ? 'user' : 'bot'}`;
-    const initial = role === 'user'
+    div.innerHTML = role === 'user'
       ? `<div class="agent-msg-avatar">You</div><div class="agent-msg-bubble">${html}</div>`
-      : `<div class="agent-msg-avatar">AI</div><div class="agent-msg-bubble" id="streamBubble">${html}</div>`;
-    div.innerHTML = initial;
-    // Remove welcome message on first real message
+      : `<div class="agent-msg-avatar">AI</div><div class="agent-msg-bubble">${html}</div>`;
     const welcome = document.getElementById('agentWelcome');
     if (welcome) welcome.remove();
     messages.appendChild(div);
@@ -2074,115 +2280,28 @@ initMSAL();
     if (el) el.remove();
   }
 
+  // ── Main send handler ─────────────────────────────────────────
+
   async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
-
-    if (!apiKey) {
-      appendMsg('bot', '⚠️ Please enter your Claude API key above to enable the AI agent.');
-      return;
-    }
-
-    const ctx = buildContext();
-    if (!ctx) {
-      appendMsg('bot', '⚠️ No dashboard data loaded. Please load your Excel file first, then ask your question.');
-      return;
-    }
-
     input.value = '';
     input.style.height = 'auto';
     sendBtn.disabled = true;
     statusEl.textContent = 'Thinking...';
-
-    appendMsg('user', mdToHtml(text));
-    history.push({ role: 'user', content: text });
-
+    appendMsg('user', `<p>${text.replace(/</g,'&lt;')}</p>`);
     showTyping();
-
-    const systemPrompt = `You are Aether, an expert FP&A analytics agent for GEP Services. You have full access to the FY2025 dashboard data below. Answer questions concisely and accurately based only on the data provided. Use $ and % formatting. Highlight gaps, risks, and performance vs targets. When comparing to targets, indicate if ON TRACK (≥95%), AT RISK (85-94%), or BEHIND (<85%). For "lower is better" metrics like attrition, reverse the logic.
-
-DASHBOARD DATA:
-${ctx}`;
-
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-allow-browser': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages: history.slice(-10) // keep last 10 turns for context
-        })
-      });
-
-      removeTyping();
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        const msg = err?.error?.message || `API error ${res.status}`;
-        appendMsg('bot', `⚠️ ${msg}`);
-        history.pop();
-        statusEl.textContent = 'Ask me anything about your dashboard';
-        sendBtn.disabled = false;
-        return;
-      }
-
-      const data = await res.json();
-      const reply = data.content?.[0]?.text || '(no response)';
-      history.push({ role: 'assistant', content: reply });
-
-      // Render with simple markdown
-      const bubble = appendMsg('bot', '');
-      const bubbleEl = bubble.querySelector('.agent-msg-bubble');
-      bubbleEl.innerHTML = renderMarkdown(reply);
-      messages.scrollTop = messages.scrollHeight;
-
-    } catch (e) {
-      removeTyping();
-      appendMsg('bot', `⚠️ Network error: ${e.message}`);
-      history.pop();
-    }
-
+    // Small delay for UX
+    await new Promise(r => setTimeout(r, 280));
+    removeTyping();
+    const answer = route(text);
+    appendMsg('bot', answer);
     statusEl.textContent = 'Ask me anything about your dashboard';
     sendBtn.disabled = false;
     input.focus();
   }
 
-  function renderMarkdown(text) {
-    // Tables
-    text = text.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g, (_, header, rows) => {
-      const ths = header.split('|').filter(c=>c.trim()).map(c=>`<th>${c.trim()}</th>`).join('');
-      const trs = rows.trim().split('\n').map(row => {
-        const tds = row.split('|').filter(c=>c.trim()).map(c=>`<td>${c.trim()}</td>`).join('');
-        return `<tr>${tds}</tr>`;
-      }).join('');
-      return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
-    });
-    // Bold & italic
-    text = text.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
-    text = text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-    text = text.replace(/\*(.+?)\*/g,'<em>$1</em>');
-    // Headers
-    text = text.replace(/^### (.+)$/gm,'<p><strong>$1</strong></p>');
-    text = text.replace(/^## (.+)$/gm,'<p><strong>$1</strong></p>');
-    text = text.replace(/^# (.+)$/gm,'<p><strong>$1</strong></p>');
-    // Lists
-    text = text.replace(/^[-*] (.+)$/gm,'<li>$1</li>');
-    text = text.replace(/(<li>[\s\S]+?<\/li>)/g,'<ul>$1</ul>');
-    text = text.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
-    // Paragraphs
-    const parts = text.split(/\n{2,}/);
-    return parts.map(p => {
-      if (p.startsWith('<')) return p;
-      return `<p>${p.replace(/\n/g,'<br>')}</p>`;
-    }).join('');
-  }
+  // ── Wire send ─────────────────────────────────────────────────
 
 })();
 </script>
