@@ -1246,7 +1246,7 @@ function heroCard(opts) {
       if (s.t) {
         if (s.value.includes("%")) tgtFmt = s.t.toFixed(0) + "%";
         else if (s.value.endsWith("M")) tgtFmt = fmtM(s.t);
-        else if (s.value.endsWith("K")) tgtFmt = fmtK(s.t);
+        else if (s.value.endsWith("K")) tgtFmt = s.t >= 1 ? fmtM(s.t) : fmtK(s.t);
         else tgtFmt = s.t.toFixed(1);
       }
       return `<div class="sub-metric">
@@ -1507,7 +1507,7 @@ function render() {
         mIdx: currentMonth,
         isRevOrMargin: true,
         subs: [
-          { label: "Blended Utilization", value: d.mg.util.toFixed(0) + "%", v: d.mg.util, t: viewMode === "MTD" ? getMTD("Utilization %", mName) : ANN_TGT.util },
+          ...(viewMode !== "FORECAST" ? [{ label: "Blended Utilization", value: d.mg.util.toFixed(0) + "%", v: d.mg.util, t: viewMode === "MTD" ? getMTD("Utilization %", mName) : ANN_TGT.util }] : []),
           { label: "Consulting Margin", value: d.mg.conM.toFixed(0) + "%", v: d.mg.conM, t: viewMode === "MTD" ? getMTD("Consulting Margin %", mName) : ANN_TGT.conM },
           { label: "MS Margin", value: d.mg.msM.toFixed(0) + "%", v: d.mg.msM, t: viewMode === "MTD" ? getMTD("MS Margin %", mName) : ANN_TGT.msM }
         ]
